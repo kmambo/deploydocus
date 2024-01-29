@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "deploydocus"
+version = "0.1.0"
+description = ""
+authors = ["Partho Bhowmick <p.s.bhowmick@gmail.com>"]
+readme = "README.md"
+packages = [{include = "deploydocus", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+kubernetes = "^29.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
