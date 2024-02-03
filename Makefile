@@ -3,7 +3,7 @@ NAME=$(shell grep ^name pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr -d '"
 
 .PHONY: all name version lint git_tag
 
-all: requirements.txt requirements-dev.txt lint sync
+all: lint build
 
 tag:
 	git tag -a v$(VERSION) -m " auto-tagged"
@@ -33,3 +33,6 @@ lint: poetry.lock src tests
 
 sync: poetry.lock
 	poetry install --sync --no-root
+
+build: sync
+	poetry build
