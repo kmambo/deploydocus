@@ -28,11 +28,14 @@ poetry.lock: pyproject.toml
 lint: poetry.lock src tests
 	isort src tests
 	black src tests
-	flake8 src tests
 	mypy src tests
+	flake8 src tests
 
 sync: poetry.lock
 	poetry install --sync --no-root
 
 build: sync
 	poetry build
+
+render:
+	helm template chart-instance k8s/defaultchart | yq -C | less -R

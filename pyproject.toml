@@ -8,19 +8,32 @@ packages = [{include = "deploydocus", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-kubernetes = "^29.0.0"
-typer = "^0.9.0"
-pydantic-settings = "^2.1.0"
+kubernetes = "^29.0"
+typer = {extras = ["all"], version = "^0.9.0"}
+pydantic-settings = "^2.2.0"
+pyyaml = {extras = ["libyaml"], version = "^6.0.1"}
 
 
 [tool.poetry.group.dev.dependencies]
-ipython = "^8.21.0"
-pytest = "^8.0.0"
+ipython = "^8.21"
+pytest = "^8.0"
 mypy = "^1.8.0"
-black = "^24.1.1"
-isort = "^5.13.2"
-flake8 = "^7.0.0"
+isort = "^5.13"
+flake8 = "^7.0"
+cython = "^3.0"
+wheel = "^0.42"
+pypiserver = "^2.0.1"
+camel-converter = "^3.1.1"
+
+[tool.poetry.group.dev.dependencies.black]
+version = "^24.1"
+allow-prereleases = false
+python = "^3.12"
+markers = "platform_python_implementation == 'CPython'"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
