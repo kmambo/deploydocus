@@ -1,11 +1,11 @@
 import json
 from itertools import permutations
-from typing import Any, Self, TextIO
 from pathlib import Path
+from typing import Any, Self, TextIO
 
 import yaml
 from camel_converter import dict_to_snake
-from kubernetes import client
+from kubernetes import client  # type: ignore
 
 
 def quote(s: str):
@@ -23,12 +23,14 @@ class FStr:
         return FStr("-".join([self.replacement, other.replacement]))
 
 
-def print_with_settings(obj_dict: dict[str, Any], save_to_file: TextIO | None = None) -> None:
+def print_with_settings(
+    obj_dict: dict[str, Any], save_to_file: TextIO | None = None
+) -> None:
     mapping = {
-        "defaultchart": FStr('{settings.chart_name}'),
-        "chart-instance": FStr('{settings.release_name}'),
-        "1.16.0": FStr('{settings.app_version}'),
-        "0.1.0": FStr('{settings.chart_version}'),
+        "defaultchart": FStr("{self.settings.chart_name}"),
+        "chart-instance": FStr("{self.settings.release_name}"),
+        "1.16.0": FStr("{self.settings.app_version}"),
+        "0.1.0": FStr("{self.settings.chart_version}"),
     }
     mapping_combine = {}
     key_perms = permutations(mapping.keys(), 2)
@@ -60,5 +62,5 @@ with open(dir_ / ".manifest.yaml", "rt") as f:
         constructor = getattr(client, f"V1{k8s['kind']}")
         kube_objs[k8s["kind"]] = constructor(**kinds[k8s["kind"]])
 for knd in kube_objs.keys():
-    with open(f"{knd}.json", "wt") as f:
+    with open(f"{knd}.py", "wt") as f:
         print_with_settings(kinds[knd], save_to_file=f)

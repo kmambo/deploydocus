@@ -12,16 +12,17 @@ kubernetes = "^29.0"
 typer = {extras = ["all"], version = "^0.9.0"}
 pydantic-settings = "^2.2.0"
 pyyaml = {extras = ["libyaml"], version = "^6.0.1"}
+types-pyyaml = "^6.0.12.20240311"
 
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.21"
-pytest = "^8.0"
-mypy = "^1.8.0"
-isort = "^5.13"
-flake8 = "^7.0"
+pytest = "^8.1.1"
+mypy = "^1.9.0"
+isort = "^5.13.2"
+flake8 = "^7.0.0"
 cython = "^3.0"
-wheel = "^0.42"
+wheel = "^0.43.0"
 pypiserver = "^2.0.1"
 camel-converter = "^3.1.1"
 

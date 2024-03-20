@@ -1,98 +1,203 @@
+import functools
+import json
+import logging
 from typing import Any
 
+from kubernetes import config, utils  # type:ignore
 from kubernetes.client import (  # type: ignore
-    V1Container,
+    ApiClient,
+    ApiException,
+    CoreV1Api,
     V1Deployment,
-    V1DeploymentSpec,
-    V1DeploymentStatus,
-    V1HorizontalPodAutoscaler,
-    V1ObjectMeta,
-    V1PodSpec,
-    V1PodTemplateSpec,
-    V1SecurityContext,
+    V1Namespace,
     V1Service,
     V1ServiceAccount,
-    V1ServicePort,
-    V1ServiceSpec,
 )
 
 from deploydocus.settings import DefaultSettings
 
-_create_default_components = [
-    "deployment",
-    "service",
-    "hpa",
-    "ingress",
-    "service_account",
-]
+manager = "deploydocus"
+
+logger = logging.getLogger(__name__)
+
+
+def _apply(method):
+    @functools.wraps(method)
+    def wrapper(*args, **kwargs):
+        self: "DefaultChart" = args[0]
+        assert isinstance(self, DefaultSettings), (
+            "This decorator can only be "
+            "applied to methods of "
+            "DefaultChart class or its "
+            "derived classes"
+        )
+        ret = method(*args, **kwargs)
+        if not self.settings.dry_run:
+            try:
+                ret = utils.create_from_dict(
+                    self._api_client,
+                    ret.to_dict(),
+                )
+                self._seq.append(ret)
+            except Exception:
+                logger.error("Unable to create kubernetes object")
+                self._unwind()
+                raise
+        return ret
+
+    return wrapper
 
 
 class DefaultChart:
+    settings: DefaultSettings
 
-    def __init__(
-        self,
-        settings: DefaultSettings,
-    ):
+    _seq: list[
+        Any
+    ]  # tracks the sequence in which kubernetes objects are created on the cluster.
+    _api_client: ApiClient
+    _core_v1: CoreV1Api
+
+    def _unwind(self):
+        while self._seq:
+            o = self._seq.pop()
+
+    def _create_api_client(self, *, context: str | None = None):
+        if not context:
+            config.load_kube_config()  # use the default chosen context
+        else:
+            config.load_kube_config(context=context)
+        self._api_client = ApiClient()
+        self._core_v1 = CoreV1Api(self._api_client)
+
+    def __init__(self, settings: DefaultSettings, *, context: str | None = None):
         """
 
         Args:
             settings:
+            context:
         """
+        self._seq = []
         self.settings = settings
+        self._create_api_client(context=context)
+
+    def create_default_namespace(self):
+        obj_dict = {
+            "api_version": "v1",
+            "kind": "Namespace",
+            "metadata": {
+                "labels": {
+                    "kubernetes.io/metadata.name": self.settings.app_namespace,
+                    "name": self.settings.app_namespace,
+                },
+                "managed_fields": [
+                    {
+                        "api_version": "v1",
+                        "fields_type": "FieldsV1",
+                        "fields_v1": {
+                            "f:metadata": {
+                                "f:labels": {
+                                    ".": {},
+                                    "f:kubernetes.io/metadata.name": {},
+                                    "f:name": {},
+                                }
+                            }
+                        },
+                        "manager": manager,
+                        "operation": "Update",
+                    }
+                ],
+                "name": self.settings.app_namespace,
+            },
+            "spec": {"finalizers": ["kubernetes"]},
+        }
+
+        ret = V1Namespace(**obj_dict)
+        if not self.settings.dry_run:
+            try:
+                ret = self.core_v1.create_namespace(body=ret)
+                logger.debug(f"Created NS: {ret}")
+            except ApiException as exc:
+                if (
+                    exc.status == 409
+                    and exc.reason == "Conflict"
+                    and json.loads(exc.body).get("reason") == "AlreadyExists"
+                ):
+                    ret = self.core_v1.patch_namespace(
+                        body=ret, name=ret.metadata["name"]
+                    )
+
+        return ret
 
     def create_default_deployment(
         self,
         *,
-        metadata: V1ObjectMeta | None = None,
-        status: V1DeploymentStatus | None = None,
-        pod_template_spec: V1PodTemplateSpec | None = None,
-        image_name_with_tag: str | None = None,
         replicas: int = 1,
-        security_context=None,
     ) -> V1Deployment:
-        selector = {
-            "app.kubernetes.io/name": self.chart_name,
-            "app.kubernetes.io/instance": self.app_instance,
-            "app.kubernetes.io/version": self.chart_tag,
-            "app.kubernetes.io/managed-by": "deploydocus.io",
+        obj_dict = {
+            "api_version": "apps/v1",
+            "kind": "Deployment",
+            "metadata": {
+                "labels": self.default_labels,
+                "name": f"{self.settings.release_name}-{self.settings.chart_name}",
+            },
+            "spec": {
+                "replicas": replicas,
+                "selector": {
+                    "match_labels": self.default_selectors
+                },
+                "template": {
+                    "metadata": {"labels": self.default_labels},
+                    "spec": {
+                        "containers": [
+                            {
+                                "image": self.settings.image_name_with_tag,
+                                "image_pull_policy": "IfNotPresent",
+                                "liveness_probe": {
+                                    "http_get": {"path": "/", "port": "http"}
+                                },
+                                "readiness_probe": {
+                                    "http_get": {"path": "/", "port": "http"}
+                                },
+                                "name": f"{self.settings.chart_name}",
+                                "ports": [
+                                    {
+                                        "container_port": 80,
+                                        "name": "http",
+                                        "protocol": "TCP",
+                                    }
+                                ],
+                                "resources": {
+                                    "limits": {"cpu": "100m", "memory": "128Mi"},
+                                    "requests": {"cpu": "100m", "memory": "128Mi"},
+                                },
+                                "security_context": {},
+                                "volume_mounts": [
+                                    {
+                                        "mount_path": "/etc/foo",
+                                        "name": "foo",
+                                        "read_only": True,
+                                    }
+                                ],
+                            }
+                        ],
+                        "security_context": {},
+                        "service_account_name": f"{self.settings.release_name}-"
+                        f"{self.settings.chart_name}",
+                        "volumes": [
+                            {
+                                "name": "foo",
+                                "secret": {
+                                    "optional": False,
+                                    "secret_name": "mysecret",
+                                },
+                            }
+                        ],
+                    },
+                },
+            },
         }
-        metadata = metadata or V1ObjectMeta(
-            name=f"{self.app_instance}-{self.chart_name}", labels=self.labels
-        )
-        pod_spec = V1PodSpec(
-            automount_service_account_token=True,
-            containers=[
-                V1Container(
-                    image=image_name_with_tag or self.settings.image_name_with_tag,
-                    name=self.settings.container_name or self.app_instance,
-                    security_context=security_context,
-                ),
-            ],
-        )
-        pod_template_spec = pod_template_spec or V1PodTemplateSpec(
-            metadata=metadata, spec=pod_spec
-        )
-        security_context = security_context or V1SecurityContext()
-        # pod_template_spec.spec.containers = [
-        #     V1Container(image=image_name_with_tag or self.settings.image_name_with_tag,
-        #                 security_context=security_context)
-        # ]
-        spec = V1DeploymentSpec(
-            selector=selector,
-            template=pod_template_spec,
-            replicas=replicas,
-        )
-        status = status or V1DeploymentStatus()
 
-        deployment: V1Deployment = V1Deployment(
-            api_version="apps/v1",
-            kind="Deployment",
-            metadata=metadata,
-            spec=spec,
-            status=status,
-        )
-
-        return deployment
+        return V1Deployment(**obj_dict)
 
     def create_default_service(
         self,
@@ -100,64 +205,95 @@ class DefaultChart:
         port_name="http",
         protocol="TCP",
     ) -> V1Service:
-        metadata = V1ObjectMeta(
-            name=f"{self.app_instance}-{self.chart_name}", labels=self.labels
-        )
-        svc_spec = V1ServiceSpec(
-            type="ClusterIP",
-            selector=self.selectors,
-            ports=[V1ServicePort(name=port_name, port=port, protocol=protocol)],
-        )
-        svc = V1Service(
-            api_version="v1", kind="Service", metadata=metadata, spec=svc_spec
-        )
-        return svc
+        obj_dict = {
+            "api_version": "v1",
+            "kind": "Service",
+            "metadata": {
+                "labels": self.default_labels,
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": port_name,
+                        "port": port,
+                        "protocol": protocol,
+                        "target_port": "http",
+                    }
+                ],
+                "selector": {
+                    "app.kubernetes.io/instance": f"{self.settings.release_name}",
+                    "app.kubernetes.io/name": f"{self.settings.chart_name}",
+                },
+                "type": "ClusterIP",
+            },
+        }
+        return V1Service(**obj_dict)
 
-    def create_default_sa(self, sa_name=None) -> V1ServiceAccount:
-        sa_name = sa_name or self.settings.sa_account_name
+    def create_default_sa(self, sa_name: str | None = None) -> V1ServiceAccount:
+        """
 
-        metadata = V1ObjectMeta(name=sa_name, labels=self.labels)
-        return V1ServiceAccount(
-            api_version="v1",
-            kind="ServiceAccount",
-            metadata=metadata,
-            automount_service_account_token=True,
-        )
+        Args:
+            sa_name: Service account name
 
-    def create_default_hpa(self) -> V1HorizontalPodAutoscaler: ...
+        Returns:
+
+        """
+        obj_dict = {
+            "api_version": "v1",
+            "automount_service_account_token": True,
+            "kind": "ServiceAccount",
+            "metadata": {
+                "labels": self.default_labels,
+                "name": sa_name
+                or f"{self.settings.release_name}-" f"{self.settings.chart_name}",
+            },
+        }
+        return V1ServiceAccount(**obj_dict)
+
+    def install(self, save_state=False, atomic=False, cont=False):
+        if not self.settings.dry_run:
+            ns = self.create_default_namespace()
+
+            namespace = ns.metadata["name"]
+            self.create_default_namespace()
 
     @property
-    def labels(self):
+    def default_labels(self):
         return {
-            "app.kubernetes.io/name": f"{self.chart_name}",
-            "app.kubernetes.io/instance": f"{self.app_instance}",
-            "app.kubernetes.io/version": f"{self.app_version}",
+            "app.kubernetes.io/name": self.default_chart_name,
+            "app.kubernetes.io/instance": self.default_release_name,
+            "app.kubernetes.io/version": self.default_app_version,
             "app.kubernetes.io/managed-by": "deploydocus.io",
+            manager: self.default_chart_fullname
         }
 
     @property
-    def chart_tag(self) -> str:
-        return f"{self.settings.chart_tag}"
+    def default_chart_version(self) -> str:
+        return self.settings.chart_version
 
     @property
-    def chart_name(self) -> str:
-        return f"{self.settings.chart_name}"
+    def default_chart_name(self) -> str:
+        return self.settings.chart_name
 
     @property
-    def chart_fullname(self) -> str:
-        return f"{self.chart_name}-{self.chart_tag}"
+    def default_chart_fullname(self) -> str:
+        return f"{self.default_chart_name}-{self.default_chart_version}"
 
     @property
-    def app_instance(self) -> str:
-        return f"{self.settings.app_instance}"
+    def default_app_version(self) -> str:
+        return self.settings.app_version
 
     @property
-    def app_version(self) -> str:
-        return f"{self.settings.app_version}"
+    def default_release_name(self) -> str:
+        return self.settings.release_name
 
     @property
-    def selectors(self) -> dict[str, str]:
+    def default_selectors(self) -> dict[str, str]:
         return {
-            "app.kubernetes.io/name": f"{self.chart_name}",
-            "app.kubernetes.io/instance": f"{self.app_instance}",
+            "app.kubernetes.io/name": self.default_chart_name,
+            "app.kubernetes.io/instance": self.default_release_name,
         }
+
+    @property
+    def core_v1(self):
+        return self._core_v1

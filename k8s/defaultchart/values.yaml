@@ -8,7 +8,7 @@ image:
   repository: busybox
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.7"
+  tag: "1.35"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -44,7 +44,7 @@ service:
   port: 80
 
 ingress:
-  enabled: true
+  enabled: false
   className: damn-ingress-class
   annotations:
     kubernetes.io/ingress.class: nginx
