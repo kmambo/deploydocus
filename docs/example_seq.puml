@@ -1,0 +1,26 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+actor deploydocus
+collections "Application packages" as app_packages
+entity "Kube cluster 1" as kube1
+entity "Kube cluster 2" as kube2
+
+deploydocus -\ app_packages: Fetch "deployment package1"
+app_packages --/ deploydocus: "deployment package1"
+deploydocus -> deploydocus: Install "deployment package1"
+deploydocus -> deploydocus: Load "deployment package1"
+deploydocus -> deploydocus: Expand
+@enduml
+---
+@startuml
+start
+:Install app package X;
+:Load app package X;
+:Fetch variables from ".env"/DB/website;
+:Expand all components in X;
+:Apply components in X;
+end
+@enduml
