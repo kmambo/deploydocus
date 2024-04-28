@@ -5,12 +5,9 @@ from pathlib import Path
 from typing import Any, Self, TextIO
 
 import yaml
-from camel_converter import to_snake
-from kubernetes import client  # type: ignore
-import kubernetes.client.api as k8sclass
 
-UPPER_FOLLOWED_BY_LOWER_RE = re.compile('(.)([A-Z][a-z]+)')
-LOWER_OR_NUM_FOLLOWED_BY_UPPER_RE = re.compile('([a-z0-9])([A-Z])')
+UPPER_FOLLOWED_BY_LOWER_RE = re.compile("(.)([A-Z][a-z]+)")
+LOWER_OR_NUM_FOLLOWED_BY_UPPER_RE = re.compile("([a-z0-9])([A-Z])")
 
 
 def quote(s: str):
@@ -29,26 +26,30 @@ class FStr:
 
 
 def print_with_settings(
-        obj_dict: dict[str, Any], save_to_file: TextIO | None = None,
-        fstring=True
+    obj_dict: dict[str, Any], save_to_file: TextIO | None = None, fstring=True
 ) -> None:
-    mapping = {
-        "defaultchart": FStr("{self.settings.chart_name}"),
-        "chart-instance": FStr("{self.settings.release_name}"),
-        "1.16.0": FStr("{self.settings.app_version}"),
-        "0.1.0": FStr("{self.settings.chart_version}"),
-    } if fstring else {
-        "defaultchart": "{chart_name}",
-        "chart-instance": "{release_name}",
-        "1.16.0": "{app_version}",
-        "0.1.0": "{chart_version}",
-    }
+    mapping = (
+        {
+            "defaultchart": FStr("{self.pkg_settings.pkg_name}"),
+            "chart-instance": FStr("{instance_settings.instance_name}"),
+            "1.16.0": FStr("{self.pkg_settings.pkg_version}"),
+            "0.1.0": FStr("{instance_settings.instance_version}"),
+        }
+        if fstring
+        else {
+            "defaultchart": "{chart_name}",
+            "chart-instance": "{release_name}",
+            "1.16.0": "{app_version}",
+            "0.1.0": "{chart_version}",
+        }
+    )
     mapping_combine = {}
     key_perms = permutations(mapping.keys(), 2)
     for k1, k2 in list(key_perms):
         if k1 != k2:
-            mapping_combine[f"{k1}-{k2}"] = mapping[k1] - mapping[k2] if fstring else \
-                f"{mapping[k1]}-{mapping[k2]}"
+            mapping_combine[f"{k1}-{k2}"] = (
+                mapping[k1] - mapping[k2] if fstring else f"{mapping[k1]}-{mapping[k2]}"
+            )
 
     json_str = json.dumps(obj_dict, sort_keys=True, separators=(",", ": "), indent=2)
     for k, v in mapping_combine.items():
@@ -63,12 +64,10 @@ def print_with_settings(
         save_to_file.writelines(json_str)
 
 
-def check_object_with_dryrun(k8s_obj, fn_to_call):
-    ...
+def check_object_with_dryrun(k8s_obj, fn_to_call): ...
 
 
 def main(save_to_file: bool = True, fstring: bool = True):
-    kube_objs: dict[str, Any] = {}
     kinds = {}
     dir_ = Path(__file__).parent
     with open(dir_ / ".manifest.yaml", "rt") as f:
@@ -82,19 +81,18 @@ def main(save_to_file: bool = True, fstring: bool = True):
             if version == "":
                 version = group
                 # set group = "core" if needed
-            k8s = {to_snake(k): v for k, v in k8s.items()}
-            kind = k8s['kind']
+            # k8s = {to_snake(k): v for k, v in k8s.items()}
+            kind = k8s["kind"]
             kinds[kind] = k8s
-            constructor = getattr(client, f"{version.capitalize()}{kind}")
-            kube_objs[kind] = constructor(**k8s)
-            print(f"{kind.lower()}: {type(kube_objs[kind])}")
-    for knd in kube_objs:
+            # constructor = getattr(client, f"{version.capitalize()}{kind}")
+            # constructor()
+    for knd, templ in kinds.items():
         if save_to_file:
             with open(f"{knd.lower()}.json.template", "wt") as f:
-                print_with_settings(kinds[knd], save_to_file=f, fstring=fstring)
+                print_with_settings(templ, save_to_file=f, fstring=fstring)
         else:
             print_with_settings(kinds[knd], None, fstring=fstring)
 
 
 if __name__ == "__main__":
-    main(fstring=False)
+    main()
