@@ -1,0 +1,120 @@
+---
+# Source: defaultchart/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chart-instance-defaultchart
+  labels:
+    helm.sh/chart: defaultchart-0.1.0
+    app.kubernetes.io/name: defaultchart
+    app.kubernetes.io/instance: chart-instance
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: defaultchart/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: chart-instance-defaultchart
+  labels:
+    helm.sh/chart: defaultchart-0.1.0
+    app.kubernetes.io/name: defaultchart
+    app.kubernetes.io/instance: chart-instance
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: defaultchart
+    app.kubernetes.io/instance: chart-instance
+---
+# Source: defaultchart/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chart-instance-defaultchart
+  labels:
+    helm.sh/chart: defaultchart-0.1.0
+    app.kubernetes.io/name: defaultchart
+    app.kubernetes.io/instance: chart-instance
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: defaultchart
+      app.kubernetes.io/instance: chart-instance
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: defaultchart-0.1.0
+        app.kubernetes.io/name: defaultchart
+        app.kubernetes.io/instance: chart-instance
+        app.kubernetes.io/version: "1.16.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: chart-instance-defaultchart
+      securityContext:
+        {}
+      containers:
+        - name: defaultchart
+          securityContext:
+            {}
+          image: "busybox:1.35"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - mountPath: /etc/foo
+              name: foo
+              readOnly: true
+      volumes:
+        - name: foo
+          secret:
+            optional: true
+            secretName: mysecret
+---
+# Source: defaultchart/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "chart-instance-defaultchart-test-connection"
+  labels:
+    helm.sh/chart: defaultchart-0.1.0
+    app.kubernetes.io/name: defaultchart
+    app.kubernetes.io/instance: chart-instance
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['chart-instance-defaultchart:80']
+  restartPolicy: Never

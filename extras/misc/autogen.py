@@ -2,7 +2,7 @@ import json
 import re
 from itertools import permutations
 from pathlib import Path
-from typing import Any, Self, TextIO
+from typing import Any, Self, TextIO, cast
 
 import yaml
 
@@ -28,7 +28,7 @@ class FStr:
 def print_with_settings(
     obj_dict: dict[str, Any], save_to_file: TextIO | None = None, fstring=True
 ) -> None:
-    mapping = (
+    mapping: dict[str, FStr | str] = (
         {
             "defaultchart": FStr("{self.pkg_settings.pkg_name}"),
             "chart-instance": FStr("{instance_settings.instance_name}"),
@@ -43,12 +43,14 @@ def print_with_settings(
             "0.1.0": "{chart_version}",
         }
     )
-    mapping_combine = {}
+    mapping_combine: dict[str, FStr | str] = {}
     key_perms = permutations(mapping.keys(), 2)
     for k1, k2 in list(key_perms):
         if k1 != k2:
             mapping_combine[f"{k1}-{k2}"] = (
-                mapping[k1] - mapping[k2] if fstring else f"{mapping[k1]}-{mapping[k2]}"
+                cast(FStr, mapping[k1]) - cast(FStr, mapping[k2])
+                if fstring
+                else f"{mapping[k1]}-{mapping[k2]}"
             )
 
     json_str = json.dumps(obj_dict, sort_keys=True, separators=(",", ": "), indent=2)
