@@ -1,0 +1,16 @@
+{
+  "service_account_name": "dummy-sa",
+  "instance_name": "dummy-instance",
+  "instance_version": "8.3",
+  "image_name_with_tag": "python-httpserver:latest",
+  "container_name": "busybox-dummy",
+  "instance_namespace": "dummy-ns2",
+  "args": ["basichttp.py"],
+  "deployment_name": "dummy-deploy",
+  "configmap_name": "dummy-cf",
+  "service_name": "dummy-svc",
+  "volume_mount": {
+    "volume_name": "dummy-vol",
+    "mount_path": "/var/lib/www"
+  }
+}

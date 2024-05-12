@@ -8,7 +8,7 @@ collections "Application packages" as app_packages
 entity "Kube cluster 1" as kube1
 entity "Kube cluster 2" as kube2
 
-deploydocus -\ app_packages: Fetch "deployment package1"
+deploydocus -\ app_packages: Fetch "deployment package1" 
 app_packages --/ deploydocus: "deployment package1"
 deploydocus -> deploydocus: Install "deployment package1"
 deploydocus -> deploydocus: Load "deployment package1"
