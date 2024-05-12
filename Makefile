@@ -2,7 +2,7 @@ VERSION=$(shell grep ^version pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr
 NAME=$(shell grep ^name pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr -d '"')
 DIR:=${CURDIR}
 
-.PHONY: all name version lint git_tag
+.PHONY: all name version lint git_tag shell
 
 all: lint build
 
@@ -25,6 +25,9 @@ requirements-dev.txt: poetry.lock
 
 poetry.lock: pyproject.toml
 	poetry lock --no-update
+
+shell: poetry.lock
+	poetry install --no-root --sync
 
 lint: poetry.lock src tests
 	isort src tests extras
