@@ -10,7 +10,7 @@ from kubernetes.utils import FailToCreateError, create_from_dict
 from ..utils import delete_from_dict
 from .errors import InstallError, KubeConfigError
 from .settings import InstanceSettings, PkgSettings
-from .types import ManifestAll, ManifestDict
+from .types import ManifestDict, ManifestSequence
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class AbstractK8sPkg(abc.ABC):
         return full_file_template.format(**kwargs)
 
     @abc.abstractmethod
-    def render(self, settings: InstanceSettings, **kwargs) -> ManifestAll:
+    def render(self, settings: InstanceSettings, **kwargs) -> ManifestSequence:
         """Renders (as JSON or YAML) the application
 
         Args:
@@ -122,7 +122,7 @@ class PkgInstaller:
         return self._api_client
 
     def _install(self, component: ManifestDict, namespace: str):
-        component_dict: dict = (
+        component_dict: dict[str, Any] = (
             component if isinstance(component, dict) else component.to_dict()
         )
         try:
@@ -141,9 +141,9 @@ class PkgInstaller:
         deploydocus_pkg: AbstractK8sPkg,
         instance_settings: InstanceSettings,
         dry_run: bool = False,
-    ):
-        """Install the components in the defined sequence (sequence comes
-        from .render() ) call
+    ) -> ManifestSequence:
+        """Install the components in the defined sequence (sequence comes from
+            .render() ) call
 
         Args:
             dry_run:
@@ -151,13 +151,15 @@ class PkgInstaller:
             deploydocus_pkg:
 
         Returns:
-            list of components successfully installed
+            sequence of components successfully installed; or in the case of
+            dry_run=True, just the rendered
 
         """
         installed = []
         try:
             components_list = deploydocus_pkg.render(instance_settings)
             if dry_run:
+                logger.info(components_list)
                 return components_list
             for component in components_list:
                 status = self._install(
@@ -176,15 +178,18 @@ class PkgInstaller:
 
     def uninstall(
         self,
+        deploydocus_pkg: AbstractK8sPkg,
         instance_settings: InstanceSettings,
-        installed: list[dict],
-    ) -> bool:
-        ret = True
-        for component in reversed(installed):
-            ret = ret and delete_from_dict(
+    ) -> ManifestSequence:
+        uninstalled = []
+        components_list = deploydocus_pkg.render(instance_settings)
+        for component in reversed(components_list):
+            ret = delete_from_dict(
                 self.api_client,
-                component,
+                data=component,
                 namespace=instance_settings.instance_namespace,
             )
-            if not ret:
-                break
+
+            if ret:
+                uninstalled.append(ret)
+        return uninstalled

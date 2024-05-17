@@ -1,8 +1,9 @@
 import logging
-from typing import Any, Sequence, override
+from typing import Any
 
 from deploydocus.installer.pkg import AbstractK8sPkg
 from deploydocus.installer.settings import InstanceSettings
+from deploydocus.installer.types import ManifestSequence
 from deploydocus.logging.configure import configure_logging
 
 from .settings import ExampleInstanceSettings, ExamplePkgSettings
@@ -212,8 +213,7 @@ class ExamplePkg(AbstractK8sPkg):
 
         return obj_dict
 
-    @override
-    def render(self, settings: ExampleInstanceSettings, **kwargs) -> Sequence[dict]:
+    def render(self, settings: ExampleInstanceSettings, **kwargs) -> ManifestSequence:
         """
 
         Args:

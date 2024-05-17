@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from pydantic import AliasGenerator, ConfigDict, alias_generators
+from pydantic import AliasGenerator, alias_generators
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from deploydocus import InstanceSettings, PkgSettings
@@ -10,7 +10,7 @@ _dir = Path(__file__).parent
 
 
 class VolumeMountSettings(BaseSettings):
-    model_config = ConfigDict(
+    model_config = SettingsConfigDict(
         alias_generator=AliasGenerator(
             serialization_alias=lambda x: alias_generators.to_pascal(x)
         )
