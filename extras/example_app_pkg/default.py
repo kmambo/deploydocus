@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, cast
 
 from deploydocus.installer.pkg import AbstractK8sPkg
 from deploydocus.installer.settings import InstanceSettings
@@ -20,7 +20,7 @@ class ExamplePkg(AbstractK8sPkg):
 
     def render_default_namespace(
         self, instance_settings: ExampleInstanceSettings
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         namespace = (
             instance_settings.instance_namespace or self.pkg_settings.pkg_namespace
         )
@@ -213,7 +213,7 @@ class ExamplePkg(AbstractK8sPkg):
 
         return obj_dict
 
-    def render(self, settings: ExampleInstanceSettings, **kwargs) -> ManifestSequence:
+    def render(self, settings: InstanceSettings, **kwargs) -> ManifestSequence:
         """
 
         Args:
@@ -223,7 +223,9 @@ class ExamplePkg(AbstractK8sPkg):
         Returns:
 
         """
-        settings_new = settings.model_copy(update=kwargs, deep=True)
+        settings_new = cast(ExampleInstanceSettings, settings).model_copy(
+            update=kwargs, deep=True
+        )
         seq: list[dict[str, Any]] = [
             self.render_default_namespace(settings_new),
             self.render_default_configmap(settings_new),

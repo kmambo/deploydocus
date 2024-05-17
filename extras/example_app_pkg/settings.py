@@ -9,7 +9,8 @@ from deploydocus import InstanceSettings, PkgSettings
 _dir = Path(__file__).parent
 
 
-class VolumeMountSettings(BaseSettings):
+class VolumeMountSettings(BaseSettings):  # type: ignore[pydantic-alias]
+
     model_config = SettingsConfigDict(
         alias_generator=AliasGenerator(
             serialization_alias=lambda x: alias_generators.to_pascal(x)
