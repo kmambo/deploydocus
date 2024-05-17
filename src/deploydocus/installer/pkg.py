@@ -180,9 +180,21 @@ class PkgInstaller:
         self,
         deploydocus_pkg: AbstractK8sPkg,
         instance_settings: InstanceSettings,
+        uninstall_point: int = 0,
     ) -> ManifestSequence:
+        """
+
+        Args:
+            deploydocus_pkg:
+            instance_settings:
+            uninstall_point: Uninstall to the point represented here.
+                For example: 0 means uninstall all but the
+
+        Returns:
+
+        """
         uninstalled = []
-        components_list = deploydocus_pkg.render(instance_settings)
+        components_list = deploydocus_pkg.render(instance_settings)[uninstall_point:]
         for component in reversed(components_list):
             ret = delete_from_dict(
                 self.api_client,
