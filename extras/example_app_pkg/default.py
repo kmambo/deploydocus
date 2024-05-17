@@ -1,8 +1,9 @@
 import logging
-from typing import Any, Sequence, override
+from typing import Any, cast
 
 from deploydocus.installer.pkg import AbstractK8sPkg
 from deploydocus.installer.settings import InstanceSettings
+from deploydocus.installer.types import ManifestSequence
 from deploydocus.logging.configure import configure_logging
 
 from .settings import ExampleInstanceSettings, ExamplePkgSettings
@@ -19,7 +20,7 @@ class ExamplePkg(AbstractK8sPkg):
 
     def render_default_namespace(
         self, instance_settings: ExampleInstanceSettings
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         namespace = (
             instance_settings.instance_namespace or self.pkg_settings.pkg_namespace
         )
@@ -212,8 +213,7 @@ class ExamplePkg(AbstractK8sPkg):
 
         return obj_dict
 
-    @override
-    def render(self, settings: ExampleInstanceSettings, **kwargs) -> Sequence[dict]:
+    def render(self, settings: InstanceSettings, **kwargs) -> ManifestSequence:
         """
 
         Args:
@@ -223,7 +223,9 @@ class ExamplePkg(AbstractK8sPkg):
         Returns:
 
         """
-        settings_new = settings.model_copy(update=kwargs, deep=True)
+        settings_new = cast(ExampleInstanceSettings, settings).model_copy(
+            update=kwargs, deep=True
+        )
         seq: list[dict[str, Any]] = [
             self.render_default_namespace(settings_new),
             self.render_default_configmap(settings_new),

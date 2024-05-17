@@ -4,6 +4,7 @@ import logging.config
 from datetime import datetime, timezone
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+from typing import cast
 
 from dotenv import dotenv_values
 
@@ -64,7 +65,7 @@ if __name__ == "__main__":
 
     dirname = Path("/var/lib/www")
     cfg = dotenv_values(dirname / ".env")
-    port = int(cfg["HTTP_PORT"])
-    ip_addr = cfg["HTTP_ADDR"]
+    port: int = int(cast(str, cfg["HTTP_PORT"]))
+    ip_addr: str = cast(str, cfg["HTTP_ADDR"])
     server = HTTPServer((ip_addr, port), WebRequestHandler)
     server.serve_forever()

@@ -8,4 +8,23 @@ class K8sModels(Protocol):
 
 
 ManifestDict: TypeAlias = dict[str, Any] | K8sModels
-ManifestAll: TypeAlias = ManifestDict | Sequence[ManifestDict]
+ManifestSequence: TypeAlias = Sequence[ManifestDict]
+ManifestAll: TypeAlias = ManifestDict | ManifestSequence
+
+
+def is_k8s_model(model: Any) -> bool:
+    """Returns true if an object is a Python class representing
+    a Kubernetes object
+
+    Args:
+        model:
+
+    Returns:
+
+    """
+    return (
+        hasattr(model, "to_dict")
+        and hasattr(model, "to_str")
+        and callable(model.to_dict)
+        and callable(model.to_str)
+    )

@@ -34,7 +34,7 @@ class InstanceSettings(BaseSettings):
 
     instance_name: str
     instance_version: str
-    instance_namespace: str | None = None
+    instance_namespace: str
     image_name_with_tag: str | None = None
 
     @classmethod
