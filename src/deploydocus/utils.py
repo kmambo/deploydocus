@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from kubernetes import client  # type: ignore
+from kubernetes import client
 from kubernetes.client import ApiClient
 from kubernetes.client.rest import ApiException  # type: ignore
 from kubernetes.utils import FailToCreateError
