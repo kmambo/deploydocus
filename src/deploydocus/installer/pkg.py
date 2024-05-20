@@ -7,7 +7,7 @@ from kubernetes.client import ApiClient
 from kubernetes.config import new_client_from_config, new_client_from_config_dict
 from kubernetes.utils import FailToCreateError, create_from_dict
 
-from ..utils import delete_from_dict
+from ..utils import delete_from_dict, delete_from_model
 from .errors import InstallError, KubeConfigError
 from .settings import InstanceSettings, PkgSettings
 from .types import ManifestDict, ManifestSequence
@@ -122,6 +122,15 @@ class PkgInstaller:
         return self._api_client
 
     def _install(self, component: ManifestDict, namespace: str):
+        """
+
+        Args:
+            component:
+            namespace:
+
+        Returns:
+
+        """
         component_dict: dict[str, Any] = (
             component if isinstance(component, dict) else component.to_dict()
         )
@@ -129,9 +138,10 @@ class PkgInstaller:
             return create_from_dict(
                 k8s_client=self.api_client, data=component_dict, namespace=namespace
             )
+
         except FailToCreateError as e:
             logger.error(f"Failed to create {component=}")
-            raise InstallError(e)
+            raise InstallError(e, component)
         except Exception:
             logger.exception(f"{component_dict=}")
             raise
@@ -140,22 +150,31 @@ class PkgInstaller:
         self,
         deploydocus_pkg: AbstractK8sPkg,
         instance_settings: InstanceSettings,
+        installed=None,
         dry_run: bool = False,
     ) -> ManifestSequence:
         """Install the components in the defined sequence (sequence comes from
-            .render() ) call
+            .render() ) call. In case a component fails, the application installation
+            is abandoned without rolling back the already installed components.
 
         Args:
-            dry_run:
-            instance_settings:
-            deploydocus_pkg:
+            installed: (recommended) If a list is provided, the created Kubernetes
+                    objects will be appended to it. This is to help track the objects
+                    as they are created in the Kubernetes cluster. If
+            dry_run: If dry_run is True, the objects are not created
+            instance_settings: The instance settings for the package
+            deploydocus_pkg: The application package to be installed
 
         Returns:
             sequence of components successfully installed; or in the case of
             dry_run=True, just the rendered
 
+        Raises:
+            InstallError when a component fails to be deployed.
+
         """
-        installed = []
+        if installed is None:
+            installed = []
         try:
             components_list = deploydocus_pkg.render(instance_settings)
             if dry_run:
@@ -166,13 +185,14 @@ class PkgInstaller:
                     component, namespace=instance_settings.instance_namespace
                 )
                 logger.debug(f"{status=}")
-                installed.append(status)
+                installed.extend(status)
         except InstallError:
-            logger.exception(
+            logger.error(
                 "Installation failed: "
                 f"package={deploydocus_pkg.pkg_name} "
                 f"instance name={instance_settings}"
             )
+            raise
 
         return installed
 
@@ -182,7 +202,7 @@ class PkgInstaller:
         instance_settings: InstanceSettings,
         uninstall_point: int = 0,
     ) -> ManifestSequence:
-        """
+        """Uninstall a package.
 
         Args:
             deploydocus_pkg:
@@ -200,6 +220,39 @@ class PkgInstaller:
                 self.api_client,
                 data=component,
                 namespace=instance_settings.instance_namespace,
+            )
+
+            if ret:
+                uninstalled.append(ret)
+        return uninstalled
+
+    def revert_install(
+        self, installed: ManifestSequence, namespace: str, uninstall_point=0
+    ) -> ManifestSequence:
+        """
+
+        Args:
+            installed:
+            uninstall_point:
+
+        Returns:
+
+        """
+        uninstalled = []
+        for component in reversed(installed[uninstall_point:]):
+            logger.info(f"Reverting: {component}")
+            ret = (
+                delete_from_dict(
+                    self.api_client,
+                    data=component,
+                    namespace=namespace,
+                )
+                if isinstance(component, dict)
+                else delete_from_model(
+                    self.api_client,
+                    data=component,
+                    namespace=namespace,
+                )
             )
 
             if ret:
