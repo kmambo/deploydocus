@@ -3,7 +3,7 @@ from typing import Any
 
 from kubernetes import client
 from kubernetes.client import ApiClient
-from kubernetes.client.rest import ApiException  # type: ignore
+from kubernetes.client.rest import ApiException
 from kubernetes.utils import FailToCreateError
 from kubernetes.utils.create_from_yaml import (  # type: ignore
     LOWER_OR_NUM_FOLLOWED_BY_UPPER_RE,
