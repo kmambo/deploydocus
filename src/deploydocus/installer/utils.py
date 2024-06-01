@@ -1,19 +1,4 @@
 from pathlib import Path
-from typing import Any
-
-from camel_converter import to_snake
-
-
-def snake_keyed_dict(obj_dict: dict[str, Any]) -> dict[str, Any]:
-    """
-
-    Args:
-        obj_dict:
-
-    Returns:
-
-    """
-    return {to_snake(k): v for k, v in obj_dict.items()}
 
 
 def settings_file_path(module_path: Path | str, json_filename: str) -> Path:

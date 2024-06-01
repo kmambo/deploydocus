@@ -32,7 +32,7 @@ _or why not stick with `helm`, `kustomize` et al_
    1. On top of that, try chaining a helm post-render hook with kustomize and you will see that the slightest change in what helm renders - say based on what the values are set for a helm chart - the changes you may need to the kustomize patches can be very different. i
    2. Debugging `kustomize build` failures are difficult in the best of circumstances. Coupled with `helm`, you will have even more trouble understanding if the failure happened because of `helm` or because of the kustomize patch.
 
-`deploydocus` on the other hand, expresses Kubernetes manifetss as Python object. Yes, even though behind the scenes, it has no choice but to deal in YAML (or JSON), every Kubernetes manifest is encapsulated in a Python object. 
+`deploydocus` on the other hand, expresses Kubernetes manifests as Python object. Yes, even though behind the scenes, it has no choice but to deal in YAML (or JSON), every Kubernetes manifest is encapsulated in a Python object. 
 To change a deployment, say, to insert an init container, to the deployment spec, is as simple as
 
 ```python

@@ -1,8 +1,7 @@
 import logging
 
-from deploydocus import PkgInstaller
-from deploydocus.installer.errors import InstallError
-from deploydocus.installer.types import ManifestDict
+from deploydocus.installer import InstallError, PkgInstaller
+from deploydocus.types import ManifestDict
 
 logger = logging.getLogger(__name__)
 

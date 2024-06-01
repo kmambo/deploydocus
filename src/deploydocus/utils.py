@@ -1,4 +1,5 @@
 import logging
+from collections import OrderedDict
 from typing import Any
 
 from kubernetes import client
@@ -10,6 +11,8 @@ from kubernetes.utils.create_from_yaml import (  # type: ignore
     UPPER_FOLLOWED_BY_LOWER_RE,
 )
 
+from deploydocus.types import LabelsDict
+
 
 class FailToDeleteError(FailToCreateError): ...
 
@@ -17,12 +20,52 @@ class FailToDeleteError(FailToCreateError): ...
 class UnsupportedObjectType(Exception): ...
 
 
+_valid_ops: list[str] = (
+    "create,delete,delete_collection,get,list,patch,update,watch".split(",")
+)
+
+
+class UnsupportedOperation(Exception): ...
+
+
 logger = logging.getLogger(__name__)
-
-
-# def is_empty(obj: Any) -> bool:
-#     _type = type(obj)
-#     if issubclass(_type, )
+kinds: OrderedDict[str, str] = OrderedDict(
+    [
+        ("Namespace", "v1"),
+        ("NetworkPolicy", "networking.k8s.io/v1"),
+        ("ResourceQuota", "v1"),
+        ("LimitRange", "v1"),
+        ("PodDisruptionBudget", "policy/v1"),
+        ("ServiceAccount", "v1"),
+        ("Secret", "v1"),
+        ("SecretList", "v1"),
+        ("ConfigMap", "v1"),
+        ("StorageClass", "storage.k8s.io/v1"),
+        ("PersistentVolume", "v1"),
+        ("PersistentVolumeClaim", "v1"),
+        ("CustomResourceDefinition", "apiextensions.k8s.io/v1"),
+        ("ClusterRole", "rbac.authorization.k8s.io/v1"),
+        ("ClusterRoleList", "rbac.authorization.k8s.io/v1"),
+        ("ClusterRoleBinding", "rbac.authorization.k8s.io/v1"),
+        ("ClusterRoleBindingList", "rbac.authorization.k8s.io/v1"),
+        ("Role", "rbac.authorization.k8s.io/v1"),
+        ("RoleList", "rbac.authorization.k8s.io/v1"),
+        ("RoleBinding", "rbac.authorization.k8s.io/v1"),
+        ("RoleBindingList", "rbac.authorization.k8s.io/v1"),
+        ("Service", "v1"),
+        ("DaemonSet", "apps/v1"),
+        ("Pod", "v1"),
+        ("ReplicationController", "v1"),
+        ("ReplicaSet", "apps/v1"),
+        ("Deployment", "apps/v1"),
+        ("HorizontalPodAutoscaler", "autoscaling/v2"),
+        ("StatefulSet", "apps/v1"),
+        ("Job", "batch/v1"),
+        ("CronJob", "batch/v1"),
+        ("Ingress", "networking.k8s.io/v1"),
+        ("APIService", "apiregistration.k8s.io/v1"),
+    ]
+)
 
 
 def remove_empty_val(obj_dict: Any) -> dict[str, Any] | list[Any]:
@@ -58,6 +101,63 @@ def remove_empty_val(obj_dict: Any) -> dict[str, Any] | list[Any]:
         raise
     except UnsupportedObjectType as e:
         raise Exception(f"{obj_dict}") from e
+
+
+def k8s_api_class(kind: str) -> type:
+    api_version = kinds[kind]
+    group, _, version = api_version.partition("/")
+    if version == "":
+        version = group
+        group = "core"
+    group = "".join(group.rsplit(".k8s.io", 1))
+    group = "".join(word.capitalize() for word in group.split("."))
+    ret = "{0}{1}Api".format(group, version.capitalize())
+    return getattr(client, ret)
+
+
+def list_or_read(
+    kind: str,
+    k8s_client: ApiClient,
+    op: str,
+    labels_selector: LabelsDict | None,
+    namespace: str | None = None,
+):
+    """
+
+    Args:
+        k8s_client:
+        kind:
+        labels_selector:
+        namespace:
+
+    Returns:
+
+    """
+    # TODO: replace labels_selector type to LabelsSelectorDict type
+    assert op in _valid_ops
+    api_class: type = k8s_api_class(kind)
+    api_class_obj = api_class(k8s_client)
+    method_suffix = UPPER_FOLLOWED_BY_LOWER_RE.sub(r"\1_\2", kind)
+    method_suffix = LOWER_OR_NUM_FOLLOWED_BY_UPPER_RE.sub(
+        r"\1_\2", method_suffix
+    ).lower()
+    fn_namespaced, fn_nonnamespaced = (
+        f"{op}_namespaced_{method_suffix}",
+        f"{op}_{method_suffix}",
+    )
+
+    if hasattr(api_class_obj, fn_namespaced):
+        # Namespaced object
+        return getattr(api_class_obj, fn_namespaced)
+    elif hasattr(api_class_obj, fn_nonnamespaced):
+        # Non-namespaced object
+        return getattr(api_class_obj, fn_nonnamespaced)
+    else:
+        raise UnsupportedOperation(
+            f"The object of kind {kind} does not support a/an "
+            f"{op} operation. "
+            f"{fn_namespaced}/{fn_nonnamespaced}"
+        )
 
 
 def delete_from_dict(
@@ -261,3 +361,21 @@ def delete_single_model(k8s_client, yml_object, verbose=False, **kwargs):
             msg += " status='{0}'".format(str(resp.status))
         logger.info(msg)
     return resp
+
+
+def is_k8s_model(model: Any) -> bool:
+    """Returns true if an object is a Python class representing
+    a Kubernetes object
+
+    Args:
+        model:
+
+    Returns:
+
+    """
+    return (
+        hasattr(model, "to_dict")
+        and hasattr(model, "to_str")
+        and callable(model.to_dict)
+        and callable(model.to_str)
+    )

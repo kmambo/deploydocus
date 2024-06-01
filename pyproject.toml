@@ -1,15 +1,20 @@
 [tool.poetry]
 name = "deploydocus"
-version = "0.1.0"
+version = "0.1.0-alpha"
 description = ""
-authors = ["Partho Bhowmick <p.s.bhowmick@gmail.com>"]
+authors = ["Partho Bhowmick <partho.bhowmick@icloud.com>"]
 readme = "README.md"
 packages = [{include = "deploydocus", from = "src"}]
+license = "GPL-3.0-or-later"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Typing :: Typed",
+    "Programming Language :: Python :: 3.12"
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
 kubernetes = ">=27 <31"
-typer = {extras = ["all"], version = "^0.12"}
 pydantic-settings = "^2.2.1"
 pyyaml = {extras = ["libyaml"], version = "^6.0"}
 types-pyyaml = "^6.0"

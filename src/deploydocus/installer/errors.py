@@ -1,6 +1,6 @@
 from kubernetes.utils import FailToCreateError
 
-from deploydocus.installer.types import ManifestDict
+from deploydocus.types import ManifestDict
 
 
 class InstallError(Exception):

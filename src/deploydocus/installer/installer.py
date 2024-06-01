@@ -1,4 +1,3 @@
-import abc
 import logging
 from pathlib import Path
 from typing import Any
@@ -7,92 +6,12 @@ from kubernetes.client import ApiClient
 from kubernetes.config import new_client_from_config, new_client_from_config_dict
 from kubernetes.utils import FailToCreateError, create_from_dict
 
-from ..utils import delete_from_dict, delete_from_model
-from .errors import InstallError, KubeConfigError
-from .settings import InstanceSettings, PkgSettings
-from .types import ManifestDict, ManifestSequence
+from deploydocus import AbstractK8sPkg, InstanceSettings
+from deploydocus.installer.errors import InstallError, KubeConfigError
+from deploydocus.types import ManifestDict, ManifestSequence
+from deploydocus.utils import delete_from_dict, delete_from_model, kinds
 
 logger = logging.getLogger(__name__)
-
-
-def _only_one(
-    context: str | None = None,
-    config_file: Path | None = None,
-    config_dict: dict[str, Any] | None = None,
-) -> ApiClient:
-    match (config_dict, context, config_file):
-        case (None, _, _):
-            return new_client_from_config(
-                config_file=config_file, context=context, persist_config=False
-            )
-        case (_, _, None):
-            return new_client_from_config_dict(
-                config_dict=config_dict, context=context, persist_config=False
-            )
-        case _, _, _:
-            raise KubeConfigError("Both config_file and config_dict cannot be provided")
-
-
-class AbstractK8sPkg(abc.ABC):
-    deploydocus_domain: str = "deploydocus.io"
-    pkg_name: str
-    pkg_settings: PkgSettings
-
-    def __init__(
-        self,
-        pkg_name: str | None = None,
-        pkg_settings_class: type[PkgSettings] = PkgSettings,
-    ):
-        """
-
-        Args:
-            pkg_name:
-            pkg_settings_class:
-        """
-        self.pkg_name = pkg_name or self.__class__.__name__
-        self.pkg_settings = pkg_settings_class()
-
-    @property
-    def namespace(self):
-        return self.pkg_settings.pkg_namespace
-
-    def default_selectors(self, **kwargs) -> dict[str, str]:
-        pkg_name, pkg_version = (
-            kwargs.get("pkg_name") or self.pkg_settings.pkg_name,
-            kwargs.get("pkg_version") or self.pkg_settings.pkg_version,
-        )
-        return {
-            "app.kubernetes.io/name": pkg_name,
-            "app.kubernetes.io/instance": pkg_version,
-        }
-
-    def read_template(self, template_filename: str, **kwargs) -> str:
-        """
-
-        Args:
-            template_filename:
-            **kwargs:
-
-        Returns:
-
-        """
-        pwd = Path(__file__).parent
-        with open(pwd / template_filename, "rt") as f:
-            full_file_template = f.read()
-        return full_file_template.format(**kwargs)
-
-    @abc.abstractmethod
-    def render(self, settings: InstanceSettings, **kwargs) -> ManifestSequence:
-        """Renders (as JSON or YAML) the application
-
-        Args:
-            settings:
-            **kwargs:
-
-        Returns:
-
-        """
-        ...
 
 
 class PkgInstaller:
@@ -121,6 +40,12 @@ class PkgInstaller:
         """
         return self._api_client
 
+    def _check_existing_k8s_objects(
+        self, pkg_name: str, instance_name: str, instance_namespace: str
+    ):
+        for kind in reversed(kinds):
+            ...
+
     def _install(self, component: ManifestDict, namespace: str):
         """
 
@@ -135,10 +60,10 @@ class PkgInstaller:
             component if isinstance(component, dict) else component.to_dict()
         )
         try:
+
             return create_from_dict(
                 k8s_client=self.api_client, data=component_dict, namespace=namespace
             )
-
         except FailToCreateError as e:
             logger.error(f"Failed to create {component=}")
             raise InstallError(e, component)
@@ -176,16 +101,16 @@ class PkgInstaller:
         if installed is None:
             installed = []
         try:
-            components_list = deploydocus_pkg.render(instance_settings)
+            components_list = deploydocus_pkg.render()
             if dry_run:
                 logger.info(components_list)
                 return components_list
             for component in components_list:
-                status = self._install(
+                installed_component = self._install(
                     component, namespace=instance_settings.instance_namespace
                 )
-                logger.debug(f"{status=}")
-                installed.extend(status)
+                logger.debug(f"{installed_component=}")
+                installed.extend(installed_component)
         except InstallError:
             logger.error(
                 "Installation failed: "
@@ -205,16 +130,17 @@ class PkgInstaller:
         """Uninstall a package.
 
         Args:
-            deploydocus_pkg:
-            instance_settings:
+            deploydocus_pkg: The package to install
+            instance_settings: The instance settings used to instantiate the package
             uninstall_point: Uninstall to the point represented here.
-                For example: 0 means uninstall all but the
+                For example: 0 means uninstall all the components;
+                    1 means uninstall all but the first rendered component etc;
 
         Returns:
 
         """
         uninstalled = []
-        components_list = deploydocus_pkg.render(instance_settings)[uninstall_point:]
+        components_list = deploydocus_pkg.render()[uninstall_point:]
         for component in reversed(components_list):
             ret = delete_from_dict(
                 self.api_client,
@@ -229,9 +155,10 @@ class PkgInstaller:
     def revert_install(
         self, installed: ManifestSequence, namespace: str, uninstall_point=0
     ) -> ManifestSequence:
-        """
+        """Reverse an installation
 
         Args:
+            namespace:
             installed:
             uninstall_point:
 
@@ -258,3 +185,21 @@ class PkgInstaller:
             if ret:
                 uninstalled.append(ret)
         return uninstalled
+
+
+def _only_one(
+    context: str | None = None,
+    config_file: Path | None = None,
+    config_dict: dict[str, Any] | None = None,
+) -> ApiClient:
+    match (config_dict, context, config_file):
+        case (None, _, _):
+            return new_client_from_config(
+                config_file=config_file, context=context, persist_config=False
+            )
+        case (_, _, None):
+            return new_client_from_config_dict(
+                config_dict=config_dict, context=context, persist_config=False
+            )
+        case _, _, _:
+            raise KubeConfigError("Both config_file and config_dict cannot be provided")

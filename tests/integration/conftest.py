@@ -5,13 +5,8 @@ from typing import Any, override
 import pytest
 from example_app_pkg import ExampleInstanceSettings, ExamplePkg
 
-from deploydocus import PkgInstaller
-
-
-@pytest.fixture
-def example_pkg():
-    ret = ExamplePkg()
-    yield ret
+from deploydocus import InstanceSettings
+from deploydocus.installer import PkgInstaller
 
 
 @pytest.fixture
@@ -23,20 +18,33 @@ def example_instance_settings():
 
 
 @pytest.fixture
-def bad_example_pkg():
+def example_pkg(example_instance_settings):
+    ret = ExamplePkg(example_instance_settings)
+    yield ret
+
+
+@pytest.fixture
+def bad_example_pkg(example_instance_settings):
     class BadExamplePackage(ExamplePkg):
 
+        def __init__(
+            self,
+            instance: InstanceSettings,
+            *,
+            pkg_version: str | None = None,
+            pkg_name: str | None = None,
+        ):
+            super().__init__(instance, pkg_version=pkg_version, pkg_name=pkg_name)
+
         @override
-        def render_default_deployment(
-            self, instance_settings: ExampleInstanceSettings
-        ) -> dict[str, Any]:
-            obj_dict = super().render_default_deployment(instance_settings)
+        def render_default_deployment(self) -> dict[str, Any]:
+            obj_dict = super().render_default_deployment()
             obj_dict["spec"]["selector"]["matchLabels"][
                 "app.kubernetes.io/name"
             ] = "hello-world"
             return obj_dict
 
-    ret = BadExamplePackage()
+    ret = BadExamplePackage(example_instance_settings)
     yield ret
 
 
