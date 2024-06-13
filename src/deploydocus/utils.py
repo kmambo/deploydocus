@@ -1,6 +1,5 @@
 import logging
-from collections import OrderedDict
-from typing import Any, Callable, LiteralString
+from typing import Any, Callable, LiteralString, cast
 
 from kubernetes import client
 from kubernetes.client import ApiClient
@@ -11,6 +10,7 @@ from kubernetes.utils.create_from_yaml import (  # type: ignore
     UPPER_FOLLOWED_BY_LOWER_RE,
 )
 
+from deploydocus import SUPPORTED_KINDS
 from deploydocus.types import K8sListModel, K8sModel
 
 
@@ -35,43 +35,6 @@ class UnsupportedOperation(Exception): ...
 
 
 logger = logging.getLogger(__name__)
-kinds: OrderedDict[str, str] = OrderedDict(
-    [
-        ("Namespace", "v1"),
-        ("NetworkPolicy", "networking.k8s.io/v1"),
-        ("ResourceQuota", "v1"),
-        ("LimitRange", "v1"),
-        ("PodDisruptionBudget", "policy/v1"),
-        ("ServiceAccount", "v1"),
-        ("Secret", "v1"),
-        ("SecretList", "v1"),
-        ("ConfigMap", "v1"),
-        ("StorageClass", "storage.k8s.io/v1"),
-        ("PersistentVolume", "v1"),
-        ("PersistentVolumeClaim", "v1"),
-        ("CustomResourceDefinition", "apiextensions.k8s.io/v1"),
-        ("ClusterRole", "rbac.authorization.k8s.io/v1"),
-        ("ClusterRoleList", "rbac.authorization.k8s.io/v1"),
-        ("ClusterRoleBinding", "rbac.authorization.k8s.io/v1"),
-        ("ClusterRoleBindingList", "rbac.authorization.k8s.io/v1"),
-        ("Role", "rbac.authorization.k8s.io/v1"),
-        ("RoleList", "rbac.authorization.k8s.io/v1"),
-        ("RoleBinding", "rbac.authorization.k8s.io/v1"),
-        ("RoleBindingList", "rbac.authorization.k8s.io/v1"),
-        ("Service", "v1"),
-        ("DaemonSet", "apps/v1"),
-        ("Pod", "v1"),
-        ("ReplicationController", "v1"),
-        ("ReplicaSet", "apps/v1"),
-        ("Deployment", "apps/v1"),
-        ("HorizontalPodAutoscaler", "autoscaling/v2"),
-        ("StatefulSet", "apps/v1"),
-        ("Job", "batch/v1"),
-        ("CronJob", "batch/v1"),
-        ("Ingress", "networking.k8s.io/v1"),
-        ("APIService", "apiregistration.k8s.io/v1"),
-    ]
-)
 
 
 def remove_empty_val(obj_dict: Any) -> dict[str, Any] | list[Any]:
@@ -110,7 +73,7 @@ def remove_empty_val(obj_dict: Any) -> dict[str, Any] | list[Any]:
 
 
 def k8s_api_class(kind: str) -> type:
-    api_version = kinds[kind]
+    api_version = SUPPORTED_KINDS[kind]
     group, _, version = api_version.partition("/")
     if version == "":
         version = group
@@ -196,6 +159,8 @@ def delete_from_dict(
     api_exceptions = []
     k8s_objects = []
 
+    if isinstance(data, dict):
+        data = cast(K8sModel, data).to_dict()
     if "List" in data["kind"]:
         kind = data["kind"].replace("List", "")
         for yml_object in reversed(data["items"]):

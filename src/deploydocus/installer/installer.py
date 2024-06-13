@@ -1,21 +1,22 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence, cast
 
 from kubernetes.client import ApiClient
 from kubernetes.client.exceptions import ApiException  # type: ignore
 from kubernetes.config import new_client_from_config, new_client_from_config_dict
 from kubernetes.utils import FailToCreateError, create_from_dict
 
-from deploydocus import AbstractK8sPkg
+from deploydocus import SUPPORTED_KINDS, AbstractK8sPkg
 from deploydocus.installer.errors import InstallError, KubeConfigError
-from deploydocus.types import K8sListModel, ManifestDict, ManifestSequence
-from deploydocus.utils import (
-    delete_from_dict,
-    delete_from_model,
-    k8s_crud_callable,
-    kinds,
+from deploydocus.types import (
+    K8sListModel,
+    K8sModel,
+    K8sModelSequence,
+    ManifestDict,
+    ManifestSequence,
 )
+from deploydocus.utils import delete_from_dict, delete_from_model, k8s_crud_callable
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 class AppNotFound(Exception): ...
 
 
-def _unlist_k8s_model(x, kind: str):
+def _unlist_k8s_model(x: K8sModel, kind: str):
     x.kind = kind
     return x
 
@@ -57,10 +58,12 @@ class PkgInstaller:
     def _check_existing_k8s_objects(
         self, pkg_name: str, instance_name: str, instance_namespace: str
     ):
-        for kind in reversed(kinds):
+        for kind in reversed(SUPPORTED_KINDS):
             ...
 
-    def _install(self, component: ManifestDict, namespace: str):
+    def _install(
+        self, component: ManifestDict, namespace: str
+    ) -> K8sModel | Sequence[K8sModel]:
         """
 
         Args:
@@ -87,9 +90,8 @@ class PkgInstaller:
     def install(
         self,
         deploydocus_pkg: AbstractK8sPkg,
-        installed=None,
-        dry_run: bool = False,
-    ) -> ManifestSequence:
+        installed: list[K8sModel] | None = None,
+    ) -> K8sModelSequence:
         """Install the components in the defined sequence (sequence comes from
             .render() ) call. In case a component fails, the application installation
             is abandoned without rolling back the already installed components.
@@ -98,12 +100,10 @@ class PkgInstaller:
             installed: (recommended) If a list is provided, the created Kubernetes
                     objects will be appended to it. This is to help track the objects
                     as they are created in the Kubernetes cluster. If
-            dry_run: If dry_run is True, the objects are not created
             deploydocus_pkg: The application package to be installed
 
         Returns:
-            sequence of components successfully installed; or in the case of
-            dry_run=True, just the rendered
+            sequence of components successfully installed
 
         Raises:
             InstallError when a component fails to be deployed.
@@ -113,9 +113,6 @@ class PkgInstaller:
             installed = []
         try:
             components_list = deploydocus_pkg.render()
-            if dry_run:
-                logger.info(components_list)
-                return components_list
             for component in components_list:
                 installed_component = self._install(
                     component,
@@ -136,7 +133,7 @@ class PkgInstaller:
     def uninstall(
         self,
         deploydocus_pkg: AbstractK8sPkg,
-    ) -> ManifestSequence:
+    ) -> Sequence[K8sModel]:
         """Uninstall a package.
 
         Args:
@@ -197,7 +194,7 @@ class PkgInstaller:
     def find_current_app_installations(
         self,
         deploydocus_pkg: AbstractK8sPkg,
-    ) -> ManifestSequence:
+    ) -> K8sModelSequence:
         """Look for installed versions of the application
 
         Args:
@@ -212,7 +209,7 @@ class PkgInstaller:
             [f"{k}={v}" for k, v in deploydocus_pkg.default_selectors.items()]
         )
         existing_components: list[ManifestDict] = []
-        for kind in kinds:
+        for kind in SUPPORTED_KINDS:
             try:
                 if kind[-4:] == "List":
                     continue
@@ -230,7 +227,10 @@ class PkgInstaller:
                 )
                 logger.info(f"{_components=}")
                 if _components.items:
-                    items = [_unlist_k8s_model(i, kind) for i in _components.items]
+                    items = [
+                        _unlist_k8s_model(i, kind)
+                        for i in cast(K8sModelSequence, _components.items)
+                    ]
                     existing_components.extend(items)
             except TypeError as t:
                 raise Exception(f"{kind=}") from t

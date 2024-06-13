@@ -12,9 +12,7 @@ def test_atomic_uninstall_upon_install_failure(
     pkg_installer = PkgInstaller(context="kind-deploydocus")
     install_tracker: list[ManifestDict] = []
     try:
-        pkg_installer.install(
-            bad_example_pkg, example_instance_settings, install_tracker
-        )
+        pkg_installer.install(bad_example_pkg, install_tracker)
         logger.info(install_tracker)
     except InstallError:
         logger.error("Installation Failure. Reversing install of installed components")

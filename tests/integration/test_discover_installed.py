@@ -4,13 +4,13 @@ from example_app_pkg import ExamplePkg
 from kubernetes.client.rest import logger as krlogger
 
 from deploydocus.installer import PkgInstaller
-from deploydocus.types import ManifestSequence
+from deploydocus.types import K8sModelSequence
 
 krlogger.setLevel(logging.WARN)
 
 
 def test_discover_installed(
-    setup_preinstalled: tuple[PkgInstaller, ExamplePkg, ManifestSequence]
+    setup_preinstalled: tuple[PkgInstaller, ExamplePkg, K8sModelSequence]
 ):
     installer, example_pkg, installed_components = setup_preinstalled
     discovered_components = installer.find_current_app_installations(example_pkg)
