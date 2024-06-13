@@ -4,6 +4,7 @@ LabelsSelector = TypedDict(
     "LabelsSelector",
     {
         "app.kubernetes.io/instance": str,
+        "app.kubernetes.io/managed-by": str,
         "app.kubernetes.io/name": NotRequired[str],
     },
 )
@@ -20,12 +21,19 @@ LabelsDict = TypedDict(
 )
 
 
-class K8sModels(Protocol):
+class K8sModel(Protocol):
     def to_dict(self) -> dict[str, Any]: ...
 
     def to_str(self) -> str: ...
 
 
-ManifestDict: TypeAlias = dict[str, Any] | K8sModels
+class K8sListModel(Protocol):
+    def to_dict(self) -> dict[str, Any]: ...
+    def to_str(self) -> str: ...
+    @property
+    def items(self) -> list[K8sModel]: ...
+
+
+ManifestDict: TypeAlias = dict[str, Any] | K8sModel | K8sListModel
 ManifestSequence: TypeAlias = Sequence[ManifestDict]
 ManifestAll: TypeAlias = ManifestDict | ManifestSequence

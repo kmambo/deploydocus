@@ -7,10 +7,11 @@ from example_app_pkg import ExampleInstanceSettings, ExamplePkg
 
 from deploydocus import InstanceSettings
 from deploydocus.installer import PkgInstaller
+from deploydocus.types import ManifestSequence
 
 
 @pytest.fixture
-def example_instance_settings():
+def example_instance_settings() -> ExampleInstanceSettings:
     json_file = pathlib.Path(__file__).parent / "release.json"
     with open(json_file, "rt") as f:
         i = ExampleInstanceSettings(**json.load(f))
@@ -18,13 +19,13 @@ def example_instance_settings():
 
 
 @pytest.fixture
-def example_pkg(example_instance_settings):
+def example_pkg(example_instance_settings) -> ExamplePkg:
     ret = ExamplePkg(example_instance_settings)
     yield ret
 
 
 @pytest.fixture
-def bad_example_pkg(example_instance_settings):
+def bad_example_pkg(example_instance_settings: ExampleInstanceSettings):
     class BadExamplePackage(ExamplePkg):
 
         def __init__(
@@ -49,15 +50,22 @@ def bad_example_pkg(example_instance_settings):
 
 
 @pytest.fixture
-def setup_preinstalled(example_pkg, example_instance_settings):
+def setup_preinstalled(
+    example_pkg: ExamplePkg,
+) -> tuple[PkgInstaller, ExamplePkg, ManifestSequence]:
     pkg_installer = PkgInstaller(context="kind-deploydocus")
-    pkg_installer.install(example_pkg, example_instance_settings)
-    yield pkg_installer, example_pkg, example_instance_settings
-    pkg_installer.uninstall(example_pkg, example_instance_settings)
+    components = []
+    pkg_installer.install(example_pkg, installed=components)
+    yield pkg_installer, example_pkg, components
+    pkg_installer.revert_install(
+        components, namespace=example_pkg.instance_settings.instance_namespace
+    )
 
 
 @pytest.fixture
-def setup_no_preinstalled(example_pkg, example_instance_settings):
+def setup_no_preinstalled(
+    example_pkg: ExamplePkg,
+) -> tuple[PkgInstaller, ExamplePkg]:
     pkg_installer = PkgInstaller(context="kind-deploydocus")
-    yield pkg_installer, example_pkg, example_instance_settings
-    pkg_installer.uninstall(example_pkg, example_instance_settings)
+    yield pkg_installer, example_pkg,
+    pkg_installer.uninstall(example_pkg)

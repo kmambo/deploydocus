@@ -1,10 +1,11 @@
 VERSION=$(shell grep ^version pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr -d '"')
 NAME=$(shell grep ^name pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr -d '"')
 DIR:=${CURDIR}
+EXAMPLE_DIR:=$(DIR)/extras/example_app_pkg
 
-.PHONY: all name version lint git_tag shell
+.PHONY: all name version lint git_tag shell example-image test
 
-all: lint build
+all: lint test build
 
 tag:
 	git tag -a v$(VERSION) -m " auto-tagged"
@@ -43,3 +44,12 @@ build: sync
 
 render:
 	helm template chart-instance k8s/defaultchart | yq -C | less -R
+
+example-image: $(EXAMPLE_DIR)/Dockerfile $(EXAMPLE_DIR)/basichttp.py pyproject.toml
+	docker build $(EXAMPLE_DIR) -t python-httpserver:$(VERSION)
+
+kind-load: example-image
+	kind load docker-image python-httpserver:$(VERSION) -n deploydocus
+
+test: requirements-dev.txt
+	PYTHONPATH=src:extras pytest tests

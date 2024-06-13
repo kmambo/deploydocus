@@ -38,10 +38,11 @@ class ExamplePkg(AbstractK8sPkg):
         obj_dict = {
             "apiVersion": "v1",
             "kind": "Namespace",
-            "metadata": {"name": namespace},
+            "metadata": {"name": namespace, "labels": self.default_labels},
             "spec": {},
             "status": {},
         }
+
         logger.info(f"{obj_dict=}")
         return obj_dict
 

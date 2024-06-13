@@ -1,15 +1,17 @@
 import abc
 import logging
 from pathlib import Path
+from typing import LiteralString
 
 from deploydocus.settings import InstanceSettings
 from deploydocus.types import LabelsDict, LabelsSelector, ManifestSequence
 
 logger = logging.getLogger(__name__)
 
+DEPLOYDOCUS_DOMAIN: LiteralString = "deploydocus.io"
+
 
 class AbstractK8sPkg(abc.ABC):
-    deploydocus_domain: str = "deploydocus.io"
     pkg_name: str
     pkg_version: str
 
@@ -37,7 +39,7 @@ class AbstractK8sPkg(abc.ABC):
             "app.kubernetes.io/name": self.pkg_name,
             "app.kubernetes.io/instance": self.instance_settings.instance_name,
             "app.kubernetes.io/version": self.instance_settings.instance_version,
-            "app.kubernetes.io/managed-by": "deploydocus.io",
+            "app.kubernetes.io/managed-by": DEPLOYDOCUS_DOMAIN,
             "deploydocus-pkg": f"{self.pkg_name}-{self.pkg_version}",
         }
 
@@ -46,6 +48,7 @@ class AbstractK8sPkg(abc.ABC):
         return {
             "app.kubernetes.io/name": self.pkg_name,
             "app.kubernetes.io/instance": self.instance_settings.instance_name,
+            "app.kubernetes.io/managed-by": DEPLOYDOCUS_DOMAIN,
         }
 
     def read_template(self, template_filename: str, **kwargs) -> str:

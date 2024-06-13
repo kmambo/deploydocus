@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Callable, LiteralString
 
 from kubernetes import client
 from kubernetes.client import ApiClient
@@ -11,7 +11,7 @@ from kubernetes.utils.create_from_yaml import (  # type: ignore
     UPPER_FOLLOWED_BY_LOWER_RE,
 )
 
-from deploydocus.types import LabelsDict
+from deploydocus.types import K8sListModel, K8sModel
 
 
 class FailToDeleteError(FailToCreateError): ...
@@ -20,9 +20,15 @@ class FailToDeleteError(FailToCreateError): ...
 class UnsupportedObjectType(Exception): ...
 
 
-_valid_ops: list[str] = (
-    "create,delete,delete_collection,get,list,patch,update,watch".split(",")
-)
+_valid_ops: list[LiteralString] = [
+    "create",
+    "delete",
+    "delete_collection",
+    "get",
+    "list",
+    "patch",
+    "update",
+]  # TODO: add support for 'watch'
 
 
 class UnsupportedOperation(Exception): ...
@@ -115,28 +121,30 @@ def k8s_api_class(kind: str) -> type:
     return getattr(client, ret)
 
 
-def list_or_read(
+def k8s_crud_callable(
+    *,
     kind: str,
     k8s_client: ApiClient,
     op: str,
-    labels_selector: LabelsDict | None,
-    namespace: str | None = None,
-):
-    """
+) -> tuple[Callable[..., K8sModel | K8sListModel], bool]:
+    """Create a callable that supports the given operation
 
     Args:
+        op:
         k8s_client:
         kind:
-        labels_selector:
-        namespace:
 
-    Returns:
+    Returns: A tuple with the first element being a callable that supports the
+    requested operation and the second is a boolean which indicates if this is
+    a namespaced op or not
 
     """
     # TODO: replace labels_selector type to LabelsSelectorDict type
     assert op in _valid_ops
     api_class: type = k8s_api_class(kind)
     api_class_obj = api_class(k8s_client)
+    if kind.endswith("List"):
+        kind = kind[:-4]
     method_suffix = UPPER_FOLLOWED_BY_LOWER_RE.sub(r"\1_\2", kind)
     method_suffix = LOWER_OR_NUM_FOLLOWED_BY_UPPER_RE.sub(
         r"\1_\2", method_suffix
@@ -148,10 +156,10 @@ def list_or_read(
 
     if hasattr(api_class_obj, fn_namespaced):
         # Namespaced object
-        return getattr(api_class_obj, fn_namespaced)
+        return getattr(api_class_obj, fn_namespaced), True
     elif hasattr(api_class_obj, fn_nonnamespaced):
         # Non-namespaced object
-        return getattr(api_class_obj, fn_nonnamespaced)
+        return getattr(api_class_obj, fn_nonnamespaced), False
     else:
         raise UnsupportedOperation(
             f"The object of kind {kind} does not support a/an "

@@ -3,15 +3,29 @@ from pathlib import Path
 from typing import Any
 
 from kubernetes.client import ApiClient
+from kubernetes.client.exceptions import ApiException  # type: ignore
 from kubernetes.config import new_client_from_config, new_client_from_config_dict
 from kubernetes.utils import FailToCreateError, create_from_dict
 
-from deploydocus import AbstractK8sPkg, InstanceSettings
+from deploydocus import AbstractK8sPkg
 from deploydocus.installer.errors import InstallError, KubeConfigError
-from deploydocus.types import ManifestDict, ManifestSequence
-from deploydocus.utils import delete_from_dict, delete_from_model, kinds
+from deploydocus.types import K8sListModel, ManifestDict, ManifestSequence
+from deploydocus.utils import (
+    delete_from_dict,
+    delete_from_model,
+    k8s_crud_callable,
+    kinds,
+)
 
 logger = logging.getLogger(__name__)
+
+
+class AppNotFound(Exception): ...
+
+
+def _unlist_k8s_model(x, kind: str):
+    x.kind = kind
+    return x
 
 
 class PkgInstaller:
@@ -35,7 +49,7 @@ class PkgInstaller:
     def api_client(self) -> ApiClient:
         """
 
-        Returns: The kubernetes
+        Returns: The kubernetes API client
 
         """
         return self._api_client
@@ -60,7 +74,6 @@ class PkgInstaller:
             component if isinstance(component, dict) else component.to_dict()
         )
         try:
-
             return create_from_dict(
                 k8s_client=self.api_client, data=component_dict, namespace=namespace
             )
@@ -68,13 +81,12 @@ class PkgInstaller:
             logger.error(f"Failed to create {component=}")
             raise InstallError(e, component)
         except Exception:
-            logger.exception(f"{component_dict=}")
+            logger.error(f"{component_dict=}")
             raise
 
     def install(
         self,
         deploydocus_pkg: AbstractK8sPkg,
-        instance_settings: InstanceSettings,
         installed=None,
         dry_run: bool = False,
     ) -> ManifestSequence:
@@ -87,7 +99,6 @@ class PkgInstaller:
                     objects will be appended to it. This is to help track the objects
                     as they are created in the Kubernetes cluster. If
             dry_run: If dry_run is True, the objects are not created
-            instance_settings: The instance settings for the package
             deploydocus_pkg: The application package to be installed
 
         Returns:
@@ -107,7 +118,8 @@ class PkgInstaller:
                 return components_list
             for component in components_list:
                 installed_component = self._install(
-                    component, namespace=instance_settings.instance_namespace
+                    component,
+                    namespace=deploydocus_pkg.instance_settings.instance_namespace,
                 )
                 logger.debug(f"{installed_component=}")
                 installed.extend(installed_component)
@@ -115,7 +127,7 @@ class PkgInstaller:
             logger.error(
                 "Installation failed: "
                 f"package={deploydocus_pkg.pkg_name} "
-                f"instance name={instance_settings}"
+                f"instance name={deploydocus_pkg.instance_settings}"
             )
             raise
 
@@ -124,32 +136,28 @@ class PkgInstaller:
     def uninstall(
         self,
         deploydocus_pkg: AbstractK8sPkg,
-        instance_settings: InstanceSettings,
-        uninstall_point: int = 0,
     ) -> ManifestSequence:
         """Uninstall a package.
 
         Args:
             deploydocus_pkg: The package to install
             instance_settings: The instance settings used to instantiate the package
-            uninstall_point: Uninstall to the point represented here.
-                For example: 0 means uninstall all the components;
-                    1 means uninstall all but the first rendered component etc;
 
         Returns:
 
         """
         uninstalled = []
-        components_list = deploydocus_pkg.render()[uninstall_point:]
+
+        components_list = self.find_current_app_installations(deploydocus_pkg)
         for component in reversed(components_list):
             ret = delete_from_dict(
                 self.api_client,
                 data=component,
-                namespace=instance_settings.instance_namespace,
+                namespace=deploydocus_pkg.instance_settings.instance_namespace,
             )
 
             if ret:
-                uninstalled.append(ret)
+                uninstalled.extend(ret)
         return uninstalled
 
     def revert_install(
@@ -185,6 +193,73 @@ class PkgInstaller:
             if ret:
                 uninstalled.append(ret)
         return uninstalled
+
+    def find_current_app_installations(
+        self,
+        deploydocus_pkg: AbstractK8sPkg,
+    ) -> ManifestSequence:
+        """Look for installed versions of the application
+
+        Args:
+            deploydocus_pkg:
+
+        Returns:
+
+        """
+        # TODO: expand  deploydocus_pkg to accept just application name
+        #  and namespace as a dict
+        selectors = ",".join(
+            [f"{k}={v}" for k, v in deploydocus_pkg.default_selectors.items()]
+        )
+        existing_components: list[ManifestDict] = []
+        for kind in kinds:
+            try:
+                if kind[-4:] == "List":
+                    continue
+                _callable, _namespaced = k8s_crud_callable(
+                    k8s_client=self.api_client, op="list", kind=kind
+                )
+
+                _components: K8sListModel = (
+                    _callable(
+                        namespace=deploydocus_pkg.instance_settings.instance_namespace,
+                        label_selector=selectors,
+                    )
+                    if _namespaced
+                    else _callable(label_selector=selectors)
+                )
+                logger.info(f"{_components=}")
+                if _components.items:
+                    items = [_unlist_k8s_model(i, kind) for i in _components.items]
+                    existing_components.extend(items)
+            except TypeError as t:
+                raise Exception(f"{kind=}") from t
+            except ApiException as ae:
+                if ae.status == 404:
+                    continue
+                logger.error(f"{kind=} {ae.status=} {ae.reason=} {ae.body=}")
+                raise
+
+        return existing_components
+
+    def upgrade_current_installation(
+        self, deploydocus_pkg: AbstractK8sPkg, create_allowed=True
+    ):
+        """Upgrade an existing installation. If there is none, then (optionally),
+        install
+
+        Args:
+            create_allowed: If True, create a new
+            deploydocus_pkg:
+
+        Returns:
+
+        """
+        current = self.find_current_app_installations(deploydocus_pkg)
+        if not current and not create_allowed:
+            raise AppNotFound
+        elif not current and create_allowed:
+            self.install(deploydocus_pkg)
 
 
 def _only_one(
