@@ -1,7 +1,41 @@
 from collections import OrderedDict
-from typing import Any, NotRequired, Sequence, TypeAlias, TypedDict, Union
+from typing import Any, NotRequired, Sequence, TypedDict
 
-from kubernetes.client import models as _k8s_models
+from kubernetes.client.models import (  # type: ignore[import-untyped]
+    V1APIService,
+    V1ClusterRole,
+    V1ClusterRoleBinding,
+    V1ClusterRoleBindingList,
+    V1ClusterRoleList,
+    V1ConfigMap,
+    V1CronJob,
+    V1CustomResourceDefinition,
+    V1DaemonSet,
+    V1Deployment,
+    V1HorizontalPodAutoscaler,
+    V1Ingress,
+    V1Job,
+    V1LimitRange,
+    V1Namespace,
+    V1NetworkPolicy,
+    V1PersistentVolume,
+    V1PersistentVolumeClaim,
+    V1Pod,
+    V1PodDisruptionBudget,
+    V1ReplicaSet,
+    V1ReplicationController,
+    V1ResourceQuota,
+    V1Role,
+    V1RoleBinding,
+    V1RoleBindingList,
+    V1RoleList,
+    V1Secret,
+    V1SecretList,
+    V1Service,
+    V1ServiceAccount,
+    V1StatefulSet,
+    V1StorageClass,
+)
 
 SUPPORTED_KINDS: OrderedDict[str, str] = OrderedDict(
     [
@@ -62,37 +96,45 @@ LabelsDict = TypedDict(
 )
 
 
-def import_k8s_model(kind: str) -> type:
-    api_version = SUPPORTED_KINDS[kind]
-    group, _, version = api_version.partition("/")
-    if version == "":
-        version = group
-    return getattr(_k8s_models, f"{version.capitalize()}{kind}")
-
-
-# class K8sModel(Protocol):
-#     def to_dict(self) -> dict[str, Any]: ...
-#
-#     def to_str(self) -> str: ...
-#
-#
-# class K8sListModel(Protocol):
-#     def to_dict(self) -> dict[str, Any]: ...
-#
-#     def to_str(self) -> str: ...
-#
-#     @property
-#     def items(self) -> list[K8sModel]: ...
-
-all_nonlist_models = [
-    import_k8s_model(k) for k in SUPPORTED_KINDS.keys() if k[-4:] != "List"
-]
-all_list_models = [
-    import_k8s_model(k) for k in SUPPORTED_KINDS.keys() if k[-4:] == "List"
-]
-K8sModel = Union[*all_nonlist_models]  # type: ignore[valid-type]
-K8sListModel: TypeAlias = Union[*all_list_models]  # type: ignore[valid-type]
-K8sModelSequence: TypeAlias = Sequence[K8sModel]
-ManifestDict: TypeAlias = dict[str, Any] | K8sModel | K8sListModel
-ManifestSequence: TypeAlias = Sequence[ManifestDict]
-ManifestAll: TypeAlias = ManifestDict | ManifestSequence
+K8sModel = (
+    V1Namespace
+    | V1NetworkPolicy
+    | V1ResourceQuota
+    | V1LimitRange
+    | V1PodDisruptionBudget
+    | V1ServiceAccount
+    | V1Secret
+    | V1ConfigMap
+    | V1StorageClass
+    | V1PersistentVolume
+    | V1PersistentVolumeClaim
+    | V1CustomResourceDefinition
+    | V1ClusterRole
+    | V1ClusterRoleBinding
+    | V1Role
+    | V1RoleBinding
+    | V1Service
+    | V1DaemonSet
+    | V1Pod
+    | V1ReplicationController
+    | V1ReplicaSet
+    | V1Deployment
+    | V1HorizontalPodAutoscaler
+    | V1StatefulSet
+    | V1Job
+    | V1CronJob
+    | V1Ingress
+    | V1APIService
+)
+K8sListModel = (
+    V1SecretList
+    | V1ClusterRoleList
+    | V1ClusterRoleBindingList
+    | V1RoleList
+    | V1RoleBindingList
+)
+K8sModelSequence = Sequence[K8sModel]
+# Deprecate the ones below
+ManifestDict = dict[str, Any] | K8sModel | K8sListModel
+ManifestSequence = Sequence[ManifestDict]
+ManifestAll = ManifestDict | ManifestSequence

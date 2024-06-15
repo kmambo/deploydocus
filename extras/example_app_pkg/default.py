@@ -11,7 +11,6 @@ from .settings import ExampleInstanceSettings
 configure_logging()
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class ExamplePkg(AbstractK8sPkg):

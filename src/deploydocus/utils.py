@@ -10,8 +10,7 @@ from kubernetes.utils.create_from_yaml import (  # type: ignore
     UPPER_FOLLOWED_BY_LOWER_RE,
 )
 
-from deploydocus import SUPPORTED_KINDS
-from deploydocus.types import K8sListModel, K8sModel
+from .types import SUPPORTED_KINDS, K8sListModel, K8sModel
 
 
 class FailToDeleteError(FailToCreateError): ...
@@ -159,7 +158,7 @@ def delete_from_dict(
     api_exceptions = []
     k8s_objects = []
 
-    if isinstance(data, dict):
+    if not isinstance(data, dict):
         data = cast(K8sModel, data).to_dict()
     if "List" in data["kind"]:
         kind = data["kind"].replace("List", "")
@@ -245,7 +244,11 @@ def delete_from_yaml_single_item(k8s_client, yml_object, verbose=False, **kwargs
         ApiException: If there is an APiException it propagates except if
         the .status attribute of the exception is 404
     """
-    group, _, version = yml_object["apiVersion"].partition("/")
+    try:
+        group, _, version = yml_object["apiVersion"].partition("/")
+    except TypeError as te:
+        te.add_note(f"{yml_object=}")
+        raise Exception("bad yaml") from te
     if version == "":
         version = group
         group = "core"

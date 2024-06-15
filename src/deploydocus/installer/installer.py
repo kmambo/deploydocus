@@ -2,14 +2,15 @@ import logging
 from pathlib import Path
 from typing import Any, Sequence, cast
 
-from kubernetes.client import ApiClient
+from kubernetes.client import ApiClient, V1Status
 from kubernetes.client.exceptions import ApiException  # type: ignore
 from kubernetes.config import new_client_from_config, new_client_from_config_dict
 from kubernetes.utils import FailToCreateError, create_from_dict
 
-from deploydocus import SUPPORTED_KINDS, AbstractK8sPkg
 from deploydocus.installer.errors import InstallError, KubeConfigError
+from deploydocus.package.pkg import AbstractK8sPkg
 from deploydocus.types import (
+    SUPPORTED_KINDS,
     K8sListModel,
     K8sModel,
     K8sModelSequence,
@@ -26,6 +27,7 @@ class AppNotFound(Exception): ...
 
 def _unlist_k8s_model(x: K8sModel, kind: str):
     x.kind = kind
+    x.api_version = SUPPORTED_KINDS[kind]
     return x
 
 
@@ -138,23 +140,35 @@ class PkgInstaller:
 
         Args:
             deploydocus_pkg: The package to install
-            instance_settings: The instance settings used to instantiate the package
 
         Returns:
 
         """
-        uninstalled = []
+        uninstalled: list[K8sModel] = []
 
-        components_list = self.find_current_app_installations(deploydocus_pkg)
+        components_list: K8sModelSequence = self.find_current_app_installations(
+            deploydocus_pkg
+        )
+        logger.warning(f"{components_list=}")
         for component in reversed(components_list):
-            ret = delete_from_dict(
-                self.api_client,
-                data=component,
-                namespace=deploydocus_pkg.instance_settings.instance_namespace,
+            delete_op, namespaced = k8s_crud_callable(
+                kind=cast(K8sModel, component).kind,
+                k8s_client=self.api_client,
+                op="delete",
+            )
+            ret: V1Status = (
+                delete_op(
+                    name=cast(K8sModel, component).metadata.name,
+                    namespace=deploydocus_pkg.instance_settings.instance_namespace,
+                )
+                if namespaced
+                else delete_op(
+                    name=cast(K8sModel, component).metadata.name,
+                )
             )
 
             if ret:
-                uninstalled.extend(ret)
+                uninstalled.append(component)
         return uninstalled
 
     def revert_install(
@@ -230,6 +244,7 @@ class PkgInstaller:
                     items = [
                         _unlist_k8s_model(i, kind)
                         for i in cast(K8sModelSequence, _components.items)
+                        if not getattr(i.metadata, "owner_references", None)
                     ]
                     existing_components.extend(items)
             except TypeError as t:
@@ -239,7 +254,7 @@ class PkgInstaller:
                     continue
                 logger.error(f"{kind=} {ae.status=} {ae.reason=} {ae.body=}")
                 raise
-
+        logger.info(f"{existing_components=}")
         return existing_components
 
     def upgrade_current_installation(

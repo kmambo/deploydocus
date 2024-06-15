@@ -25,7 +25,7 @@ plumbum = "^1.8"
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.21"
 pytest = "^8.1"
-mypy = "^1.9"
+mypy = "^1.10.0"
 isort = "^5.13"
 flake8 = "^7.0"
 cython = "^3.0"
