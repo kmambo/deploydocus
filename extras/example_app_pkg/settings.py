@@ -4,12 +4,12 @@ from pathlib import Path
 from pydantic import AliasGenerator, alias_generators
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from deploydocus import InstanceSettings, PkgSettings
+from deploydocus import InstanceSettings
 
 _dir = Path(__file__).parent
 
 
-class VolumeMountSettings(BaseSettings):  # type: ignore[pydantic-alias]
+class VolumeMountSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         alias_generator=AliasGenerator(
@@ -32,7 +32,3 @@ class ExampleInstanceSettings(InstanceSettings):
     automount_sa_token: bool = True
     container_name: str
     volume_mount: VolumeMountSettings | None = None
-
-
-class ExamplePkgSettings(PkgSettings):
-    model_config = SettingsConfigDict(json_file=_dir / "pkg.json")

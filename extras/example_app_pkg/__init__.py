@@ -1,8 +1,7 @@
 from .default import ExamplePkg
-from .settings import ExampleInstanceSettings, ExamplePkgSettings, VolumeMountSettings
+from .settings import ExampleInstanceSettings, VolumeMountSettings
 
 __all__ = [
-    "ExamplePkgSettings",
     "ExampleInstanceSettings",
     "ExamplePkg",
     "VolumeMountSettings",

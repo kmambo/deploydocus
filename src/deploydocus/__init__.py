@@ -1,10 +1,6 @@
-from .installer.helm3.helm_shell import helm_template
-from .installer.pkg import AbstractK8sPkg, InstanceSettings, PkgInstaller, PkgSettings
+from deploydocus.package.pkg import AbstractK8sPkg, InstanceSettings
 
-__all__ = [
-    "helm_template",
-    "AbstractK8sPkg",
-    "PkgSettings",
-    "PkgInstaller",
-    "InstanceSettings",
-]
+from .installer.helm3.helm_shell import helm_template
+from .types import SUPPORTED_KINDS
+
+__all__ = ["helm_template", "AbstractK8sPkg", "InstanceSettings", "SUPPORTED_KINDS"]

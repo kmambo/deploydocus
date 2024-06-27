@@ -22,7 +22,7 @@ CONFIG = {
         },
     },
     "root": {
-        "level": "DEBUG",
+        "level": "WARN",
         "handlers": [
             "stderr",
             "stdout",

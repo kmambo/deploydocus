@@ -82,12 +82,8 @@ def main(save_to_file: bool = True, fstring: bool = True):
             group, _, version = k8s["apiVersion"].partition("/")
             if version == "":
                 version = group
-                # set group = "core" if needed
-            # k8s = {to_snake(k): v for k, v in k8s.items()}
             kind = k8s["kind"]
             kinds[kind] = k8s
-            # constructor = getattr(client, f"{version.capitalize()}{kind}")
-            # constructor()
     for knd, templ in kinds.items():
         if save_to_file:
             with open(f"{knd.lower()}.json.template", "wt") as f:
