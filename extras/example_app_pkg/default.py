@@ -1,8 +1,8 @@
 import logging
-from typing import Any, cast
+from typing import Any, cast, override
 
 from deploydocus.logging.configure import configure_logging
-from deploydocus.package.pkg import AbstractK8sPkg
+from deploydocus.package.pkg import AbstractK8sPkg, autosort
 from deploydocus.settings import InstanceSettings
 from deploydocus.types import ManifestSequence
 
@@ -42,7 +42,7 @@ class ExamplePkg(AbstractK8sPkg):
             "status": {},
         }
 
-        logger.info(f"{obj_dict=}")
+        logger.debug(f"{obj_dict=}")
         return obj_dict
 
     def render_default_deployment(self) -> dict[str, Any]:
@@ -126,7 +126,7 @@ class ExamplePkg(AbstractK8sPkg):
             },
         }
 
-        logger.info(f"{obj_dict=}")
+        logger.debug(f"{obj_dict=}")
 
         return obj_dict
 
@@ -157,7 +157,7 @@ class ExamplePkg(AbstractK8sPkg):
                 "type": "ClusterIP",
             },
         }
-        logger.info(f"{obj_dict=}")
+        logger.debug(f"{obj_dict=}")
         return obj_dict
 
     def render_default_svc_acct(self) -> dict[str, Any]:
@@ -182,7 +182,7 @@ class ExamplePkg(AbstractK8sPkg):
                 "namespace": namespace,
             },
         }
-        logger.info(f"{obj_dict=}")
+        logger.debug(f"{obj_dict=}")
         return obj_dict
 
     def render_default_configmap(self):
@@ -200,12 +200,10 @@ class ExamplePkg(AbstractK8sPkg):
 
         return obj_dict
 
+    @autosort
+    @override
     def render(self) -> ManifestSequence:
         """
-
-        Args:
-            settings:
-            **kwargs:
 
         Returns:
 
@@ -213,9 +211,9 @@ class ExamplePkg(AbstractK8sPkg):
         seq: list[dict[str, Any]] = [
             self.render_default_namespace(),
             self.render_default_configmap(),
+            self.render_default_service(),
             self.render_default_svc_acct(),
             self.render_default_deployment(),
-            self.render_default_service(),
         ]
 
         return seq

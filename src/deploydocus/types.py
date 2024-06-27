@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, NotRequired, Sequence, TypedDict
+from typing import Any, NotRequired, TypedDict, Union
 
 from kubernetes.client.models import (  # type: ignore[import-untyped]
     V1APIService,
@@ -75,6 +75,8 @@ SUPPORTED_KINDS: OrderedDict[str, str] = OrderedDict(
     ]
 )
 
+SUPPORTED_KUBERNETES_KINDS: list[str] = list(SUPPORTED_KINDS.keys())
+
 LabelsSelector = TypedDict(
     "LabelsSelector",
     {
@@ -95,46 +97,45 @@ LabelsDict = TypedDict(
     },
 )
 
-
-K8sModel = (
-    V1Namespace
-    | V1NetworkPolicy
-    | V1ResourceQuota
-    | V1LimitRange
-    | V1PodDisruptionBudget
-    | V1ServiceAccount
-    | V1Secret
-    | V1ConfigMap
-    | V1StorageClass
-    | V1PersistentVolume
-    | V1PersistentVolumeClaim
-    | V1CustomResourceDefinition
-    | V1ClusterRole
-    | V1ClusterRoleBinding
-    | V1Role
-    | V1RoleBinding
-    | V1Service
-    | V1DaemonSet
-    | V1Pod
-    | V1ReplicationController
-    | V1ReplicaSet
-    | V1Deployment
-    | V1HorizontalPodAutoscaler
-    | V1StatefulSet
-    | V1Job
-    | V1CronJob
-    | V1Ingress
-    | V1APIService
-)
-K8sListModel = (
-    V1SecretList
-    | V1ClusterRoleList
-    | V1ClusterRoleBindingList
-    | V1RoleList
-    | V1RoleBindingList
-)
-K8sModelSequence = Sequence[K8sModel]
-# Deprecate the ones below
+K8sModel = Union[
+    V1APIService,
+    V1ClusterRoleBinding,
+    V1ClusterRole,
+    V1ConfigMap,
+    V1CronJob,
+    V1CustomResourceDefinition,
+    V1DaemonSet,
+    V1Deployment,
+    V1HorizontalPodAutoscaler,
+    V1Ingress,
+    V1Job,
+    V1LimitRange,
+    V1Namespace,
+    V1NetworkPolicy,
+    V1PersistentVolume,
+    V1PersistentVolumeClaim,
+    V1Pod,
+    V1PodDisruptionBudget,
+    V1ReplicaSet,
+    V1ReplicationController,
+    V1ResourceQuota,
+    V1RoleBinding,
+    V1Role,
+    V1Secret,
+    V1Service,
+    V1ServiceAccount,
+    V1StatefulSet,
+    V1StorageClass,
+]
+K8sListModel = Union[
+    V1ClusterRoleBindingList,
+    V1ClusterRoleList,
+    V1RoleBindingList,
+    V1RoleList,
+    V1SecretList,
+]
+K8sModelSequence = list[K8sModel]
+# TODO: Deprecate the ones below
 ManifestDict = dict[str, Any] | K8sModel | K8sListModel
-ManifestSequence = Sequence[ManifestDict]
+ManifestSequence = list[ManifestDict]
 ManifestAll = ManifestDict | ManifestSequence

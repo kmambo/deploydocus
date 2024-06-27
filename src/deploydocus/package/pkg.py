@@ -1,14 +1,36 @@
 import abc
 import logging
+from functools import wraps
 from pathlib import Path
 from typing import LiteralString
 
 from deploydocus.settings import InstanceSettings
-from deploydocus.types import LabelsDict, LabelsSelector, ManifestSequence
+from deploydocus.types import (
+    SUPPORTED_KINDS,
+    LabelsDict,
+    LabelsSelector,
+    ManifestSequence,
+)
 
 logger = logging.getLogger(__name__)
 
 DEPLOYDOCUS_DOMAIN: LiteralString = "deploydocus.io"
+
+
+def autosort(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        ret: ManifestSequence = f(*args, **kwargs)
+        ret.sort(
+            key=lambda obj: list(SUPPORTED_KINDS).index(
+                obj["kind"] if isinstance(obj, dict) else obj.kind
+            )
+        )
+        return ret
+
+    print(type(f))
+
+    return wrapped
 
 
 class AbstractK8sPkg(abc.ABC):
@@ -69,10 +91,6 @@ class AbstractK8sPkg(abc.ABC):
     @abc.abstractmethod
     def render(self) -> ManifestSequence:
         """Renders (as JSON or YAML) the application
-
-        Args:
-            settings:
-            **kwargs:
 
         Returns:
 

@@ -10,4 +10,4 @@ def test_install(setup_no_preinstalled: tuple[PkgInstaller, ExamplePkg]):
     ) = setup_no_preinstalled
     ret = _pkg_installer.install(_example_pkg)
     assert len(ret) == 5
-    assert not isinstance(ret[0], list)
+    assert not isinstance(ret[0], list), f"{ret=}"

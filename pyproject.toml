@@ -15,7 +15,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.12"
 kubernetes = ">=27 <31"
-pydantic-settings = "^2.2.1"
+pydantic-settings = "^2.3.4"
 pyyaml = {extras = ["libyaml"], version = "^6.0"}
 types-pyyaml = "^6.0"
 pygithub = "^2.3"

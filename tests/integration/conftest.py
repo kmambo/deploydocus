@@ -1,8 +1,10 @@
 import json
 import pathlib
+from tempfile import NamedTemporaryFile
 from typing import Any, Generator, override
 
 import pytest
+import yaml
 from example_app_pkg import ExampleInstanceSettings, ExamplePkg
 from plumbum import local
 
@@ -19,12 +21,39 @@ def example_instance_settings() -> ExampleInstanceSettings:
     return i
 
 
-def _uninstall(namespace, service, deployment, configmap):
-    _kdel = local["kubectl"]
-    _kdel("delete", "service", service, "-n", namespace, retcode=None)
-    _kdel("delete", "deployment", deployment, "-n", namespace, retcode=None)
-    _kdel("delete", "configmap", configmap, "-n", namespace, retcode=None)
-    _kdel("delete", "ns", namespace, retcode=None)
+def _uninstall_test_util(namespace: str, service: str, deployment: str, configmap: str):
+    """Utility function used during testing to delete installed components
+
+    Args:
+        namespace: The name of the namespace to be deleted
+        service: The name of the service to be deleted
+        deployment: The name of the deployment to be deleted
+        configmap: The name of the configmap to be deleted
+
+    Returns:
+        None
+    """
+    kubectl = local["kubectl"]
+    kubectl("delete", "service", service, "-n", namespace, retcode=None)
+    kubectl("delete", "deployment", deployment, "-n", namespace, retcode=None)
+    kubectl("delete", "configmap", configmap, "-n", namespace, retcode=None)
+    kubectl("delete", "ns", namespace, retcode=None)
+
+
+def _install_test_util(rendered: list[dict[str, Any]]):
+    """Utility function used during testing to apply a rendered package
+
+    Args:
+        rendered: The rendered package
+
+    Returns:
+        None
+    """
+    kubectl = local["kubectl"]  # find kubectl
+    with NamedTemporaryFile("wt") as f:
+        yaml.safe_dump_all(rendered, f)
+        f.flush()
+        kubectl("apply", "-f", f.name, retcode=None)
 
 
 @pytest.fixture
@@ -56,8 +85,14 @@ def bad_example_pkg(
             ] = "hello-world"
             return obj_dict
 
-    ret = BadExamplePackage(example_instance_settings)
-    yield ret
+    bad_example_pkg = BadExamplePackage(example_instance_settings)
+    yield bad_example_pkg
+    _uninstall_test_util(
+        namespace=bad_example_pkg.instance_settings.instance_namespace,
+        service=bad_example_pkg.render_default_service()["metadata"]["name"],
+        deployment=bad_example_pkg.render_default_deployment()["metadata"]["name"],
+        configmap=bad_example_pkg.render_default_configmap()["metadata"]["name"],
+    )
 
 
 @pytest.fixture
@@ -67,10 +102,11 @@ def setup_preinstalled(
     pkg_installer = PkgInstaller(context="kind-deploydocus")
     components: list[K8sModel] = []
     try:
-        pkg_installer.install(example_pkg, installed=components)
+        rendered = example_pkg.render()
+        _install_test_util(rendered)
         yield pkg_installer, example_pkg, components
     finally:
-        _uninstall(
+        _uninstall_test_util(
             namespace=example_pkg.instance_settings.instance_namespace,
             service=example_pkg.render_default_service()["metadata"]["name"],
             deployment=example_pkg.render_default_deployment()["metadata"]["name"],
@@ -84,7 +120,7 @@ def setup_no_preinstalled(
 ) -> Generator[tuple[PkgInstaller, ExamplePkg], None, None]:
     pkg_installer = PkgInstaller(context="kind-deploydocus")
     yield pkg_installer, example_pkg,
-    _uninstall(
+    _uninstall_test_util(
         namespace=example_pkg.instance_settings.instance_namespace,
         service=example_pkg.render_default_service()["metadata"]["name"],
         deployment=example_pkg.render_default_deployment()["metadata"]["name"],

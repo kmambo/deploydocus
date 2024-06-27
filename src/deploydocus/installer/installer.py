@@ -2,12 +2,11 @@ import logging
 from pathlib import Path
 from typing import Any, Sequence, cast
 
-from kubernetes.client import ApiClient, V1Status
+from kubernetes.client import ApiClient, V1ObjectMeta, V1Secret, V1Status
 from kubernetes.client.exceptions import ApiException  # type: ignore
 from kubernetes.config import new_client_from_config, new_client_from_config_dict
-from kubernetes.utils import FailToCreateError, create_from_dict
 
-from deploydocus.installer.errors import InstallError, KubeConfigError
+from deploydocus.installer.errors import KubeConfigError, PkgAlreadyInstalled
 from deploydocus.package.pkg import AbstractK8sPkg
 from deploydocus.types import (
     SUPPORTED_KINDS,
@@ -17,7 +16,14 @@ from deploydocus.types import (
     ManifestDict,
     ManifestSequence,
 )
-from deploydocus.utils import delete_from_dict, delete_from_model, k8s_crud_callable
+from deploydocus.utils import (
+    create_component_factory,
+    delete_from_dict,
+    delete_from_model,
+    get_component_factory,
+    k8s_crud_callable,
+    patch_component_factory,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +32,30 @@ class AppNotFound(Exception): ...
 
 
 def _unlist_k8s_model(x: K8sModel, kind: str):
+    """A helper function to take the items field from a K8s List model
+    (such as DeploymentList, SecretList) and create its equivalent model. So
+    for example, it will convert an item from a SecretList will be converted
+    to a Secret object
+
+    Args:
+        x:
+        kind:
+
+    Returns:
+
+    """
     x.kind = kind
+    if kind == "Secret":
+        metadata: V1ObjectMeta = x.metadata
+        annotations: dict[str, str] = metadata.annotations
+        if "kubectl.kubernetes.io/last-applied-configuration" in annotations:
+            annotations["kubectl.kubernetes.io/last-applied-configuration"] = "****"
+        if x.data:
+            cast(V1Secret, x).data = {"redacted": "KioqKg=="}
+        elif x.string_data:
+            x.string_data = {"redacted": "****"}
     x.api_version = SUPPORTED_KINDS[kind]
+
     return x
 
 
@@ -57,7 +85,7 @@ class PkgInstaller:
         """
         return self._api_client
 
-    def _check_existing_k8s_objects(
+    def _check_existing_installed_components(
         self, pkg_name: str, instance_name: str, instance_namespace: str
     ):
         for kind in reversed(SUPPORTED_KINDS):
@@ -66,7 +94,7 @@ class PkgInstaller:
     def _install(
         self, component: ManifestDict, namespace: str
     ) -> K8sModel | Sequence[K8sModel]:
-        """
+        """Install a single component if it does not already exist. Otherwise, update
 
         Args:
             component:
@@ -75,19 +103,46 @@ class PkgInstaller:
         Returns:
 
         """
-        component_dict: dict[str, Any] = (
-            component if isinstance(component, dict) else component.to_dict()
+        kind: str = component["kind"] if isinstance(component, dict) else component.kind
+        name: str = (
+            component["metadata"]["name"]
+            if isinstance(component, dict)
+            else component.metadata.name
         )
+
+        get_component, namespaced = get_component_factory(
+            kind=kind, k8s_client=self.api_client
+        )
+        existing_component: K8sModel | None
         try:
-            return create_from_dict(
-                k8s_client=self.api_client, data=component_dict, namespace=namespace
+            if namespaced:
+                namespace = (
+                    component["metadata"]["namespace"]
+                    if isinstance(component, dict)
+                    else cast(V1ObjectMeta, component.metadata).namespace
+                )
+                existing_component = get_component(name=name, namespace=namespace)
+            else:
+                existing_component = get_component(name=name)
+        except ApiException as ae:
+            if ae.status == 404:
+                existing_component = None
+            else:
+                raise
+
+        if existing_component:
+            apply_operator, _ = patch_component_factory(
+                kind=kind, k8s_client=self.api_client
             )
-        except FailToCreateError as e:
-            logger.error(f"Failed to create {component=}")
-            raise InstallError(e, component)
-        except Exception:
-            logger.error(f"{component_dict=}")
-            raise
+        else:
+            apply_operator, _ = create_component_factory(
+                kind=kind, k8s_client=self.api_client
+            )
+
+        if namespaced:
+            return apply_operator(namespace=namespace, body=component)
+        else:
+            return apply_operator(body=component)
 
     def install(
         self,
@@ -101,7 +156,7 @@ class PkgInstaller:
         Args:
             installed: (recommended) If a list is provided, the created Kubernetes
                     objects will be appended to it. This is to help track the objects
-                    as they are created in the Kubernetes cluster. If
+                    as they are created in the Kubernetes cluster.
             deploydocus_pkg: The application package to be installed
 
         Returns:
@@ -113,6 +168,12 @@ class PkgInstaller:
         """
         if installed is None:
             installed = []
+
+        current_app: list[K8sModel] = self.find_current_app_installations(
+            deploydocus_pkg
+        )
+        if current_app:
+            raise PkgAlreadyInstalled(current_app)
         try:
             components_list = deploydocus_pkg.render()
             for component in components_list:
@@ -121,9 +182,9 @@ class PkgInstaller:
                     namespace=deploydocus_pkg.instance_settings.instance_namespace,
                 )
                 logger.debug(f"{installed_component=}")
-                installed.extend(installed_component)
-        except InstallError:
-            logger.error(
+                installed.append(installed_component)
+        except ApiException as ae:
+            ae.add_note(
                 "Installation failed: "
                 f"package={deploydocus_pkg.pkg_name} "
                 f"instance name={deploydocus_pkg.instance_settings}"
@@ -174,10 +235,11 @@ class PkgInstaller:
     def revert_install(
         self, installed: ManifestSequence, namespace: str, uninstall_point=0
     ) -> ManifestSequence:
-        """Reverse an installation
+        """Reverse an installation if you have tracked the components that have
+        been installed. It is meant to be used
 
         Args:
-            namespace:
+            namespace: The namespace in which the components were installed
             installed:
             uninstall_point:
 
@@ -215,14 +277,12 @@ class PkgInstaller:
             deploydocus_pkg:
 
         Returns:
-
+            The components of an installed package (in installation order)
         """
-        # TODO: expand  deploydocus_pkg to accept just application name
-        #  and namespace as a dict
         selectors = ",".join(
             [f"{k}={v}" for k, v in deploydocus_pkg.default_selectors.items()]
         )
-        existing_components: list[ManifestDict] = []
+        existing_components: list[K8sModel] = []
         for kind in SUPPORTED_KINDS:
             try:
                 if kind[-4:] == "List":
@@ -239,7 +299,7 @@ class PkgInstaller:
                     if _namespaced
                     else _callable(label_selector=selectors)
                 )
-                logger.info(f"{_components=}")
+                logger.debug(f"{_components=}")
                 if _components.items:
                     items = [
                         _unlist_k8s_model(i, kind)

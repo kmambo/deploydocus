@@ -1,4 +1,4 @@
-from .errors import InstallError, KubeConfigError
+from .errors import KubeConfigError
 from .installer import PkgInstaller
 
-__all__ = ["PkgInstaller", "InstallError", "KubeConfigError"]
+__all__ = ["PkgInstaller", "KubeConfigError"]
