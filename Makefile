@@ -2,8 +2,8 @@ VERSION=$(shell grep ^version pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr
 NAME=$(shell grep ^name pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr -d '"')
 DIR:=${CURDIR}
 EXAMPLE_DIR:=$(DIR)/extras/example_app_pkg
-
-.PHONY: all name version lint git_tag shell example-image test
+src_files:=$(shell find $(DIR) -type f -name '*.py')
+.PHONY: all name version lint git_tag shell example-image test docs
 
 all: lint test build
 
@@ -31,9 +31,9 @@ shell: poetry.lock
 	poetry install --no-root --sync
 
 lint: poetry.lock src tests
-	isort src tests extras
-	black src tests extras
-	flake8 src tests extras
+	isort src tests extras docs/source
+	black src tests extras docs/source
+	flake8 src tests extras docs/source
 	$(DIR)/scripts/dmypy.sh src tests extras
 
 sync: poetry.lock
@@ -53,3 +53,6 @@ kind-load: example-image
 
 test: requirements-dev.txt
 	PYTHONPATH=src:extras pytest tests
+
+docs:
+	$(MAKE) -C docs html
