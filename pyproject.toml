@@ -15,26 +15,27 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.12"
 kubernetes = ">=27 <31"
-pydantic-settings = "^2.3.4"
+pydantic-settings = "^2.3"
 pyyaml = {extras = ["libyaml"], version = "^6.0"}
 types-pyyaml = "^6.0"
-pygithub = "^2.3"
 plumbum = "^1.8"
 
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.25.0"
 pytest = "^8.2.2"
-mypy = "^1.10.1"
-isort = "^5.13.2"
-flake8 = "^7.1.0"
-cython = "^3.0.10"
-wheel = "^0.43.0"
-pypiserver = "^2.0"
+mypy = "^1.10"
+isort = "^5.13"
+flake8 = "^7.1"
+cython = "^3.0"
+wheel = "^0.43"
 camel-converter = "^3.1"
-black = "^24.4.2"
-sphinx = "^7.3.7"
-spdx-tools = "^0.8.2"
+black = "^24.4"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^7.3"
+mkdocs = "^1.6"
+mkdocs-material = "^9.5.30"
 
 [build-system]
 requires = ["poetry-core"]

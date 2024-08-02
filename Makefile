@@ -2,7 +2,9 @@ VERSION=$(shell grep ^version pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr
 NAME=$(shell grep ^name pyproject.toml | gawk -F"[= ]" '{print $$NF}' | tr -d '"')
 DIR:=${CURDIR}
 EXAMPLE_DIR:=$(DIR)/extras/example_app_pkg
+MAKE:=make
 src_files:=$(shell find $(DIR) -type f -name '*.py')
+
 .PHONY: all name version lint git_tag shell example-image test docs
 
 all: lint test build
@@ -56,3 +58,15 @@ test: requirements-dev.txt
 
 docs:
 	$(MAKE) -C docs html
+
+.PHONY: preview-docs
+preview-docs: docs
+	python -m http.server 9000 --bind=127.0.0.1 --directory docs/build/html
+
+.PHONY: site
+site:
+	make -C docs/project_site build
+
+.PHONY: preview-site
+preview-site: site
+	make -C docs/project_site preview
