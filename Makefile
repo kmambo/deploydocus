@@ -65,8 +65,13 @@ preview-docs: docs
 
 .PHONY: site
 site:
-	make -C docs/project_site build
+	$(MAKE) -C docs/project_site build
 
 .PHONY: preview-site
 preview-site: site
-	make -C docs/project_site preview
+	$(MAKE) -C docs/project_site preview
+
+
+.PHONY: deploy-site
+deploy-site: site
+	firebase deploy  --only hosting:deploydocus
