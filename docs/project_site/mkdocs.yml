@@ -1,0 +1,17 @@
+site_name: deploydocus
+site_url: https://deploydocus.io
+site_author: Partho S Bhowmick
+site_description: |
+  Deploydocus - The Pythonic alternative to helm, kustomize and GitOps
+
+copyright: 'Copyright &copy; Partho Bhowmick'
+watch:
+  - 'docs'
+nav:
+  - Home: 'index.md'
+theme:
+  name: material
+  favicon: https://avatars.githubusercontent.com/u/5515525?v=4
+  logo: https://avatars.githubusercontent.com/u/5515525?v=4
+  features:
+    - navigation.indexes

@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "site": "deploydocus",
+    "public": "docs/project_site/site",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
