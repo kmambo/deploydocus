@@ -1,4 +1,4 @@
 from .errors import KubeConfigError
-from .installer import PkgInstaller
+from deploydocus.package.installer import PkgInstaller
 
 __all__ = ["PkgInstaller", "KubeConfigError"]

@@ -22,3 +22,4 @@ class Kustomization:
             relpath = None  # ignore the relpath param
 
         self.relpath = Path(relpath) if relpath else None
+
