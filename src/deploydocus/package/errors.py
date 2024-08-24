@@ -1,4 +1,4 @@
-from deploydocus.types import K8sModel
+from deploydocus.package.types import K8sModel
 
 
 class KubeConfigError(Exception):

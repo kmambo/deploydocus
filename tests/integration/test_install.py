@@ -1,6 +1,6 @@
 from example_app_pkg import ExamplePkg
 
-from deploydocus.installer import PkgInstaller
+from deploydocus.appstate import PkgInstaller
 
 
 def test_install(setup_no_preinstalled: tuple[PkgInstaller, ExamplePkg]):

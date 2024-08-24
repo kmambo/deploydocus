@@ -3,8 +3,8 @@ import logging
 from example_app_pkg import ExamplePkg
 from kubernetes.client.rest import logger as krlogger
 
-from deploydocus.installer import PkgInstaller
-from deploydocus.types import K8sModelSequence
+from deploydocus.appstate import PkgInstaller
+from deploydocus.package.types import K8sModelSequence
 
 krlogger.setLevel(logging.WARN)
 

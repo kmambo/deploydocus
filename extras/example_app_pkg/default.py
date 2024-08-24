@@ -3,8 +3,8 @@ from typing import Any, cast, override
 
 from deploydocus.logging.configure import configure_logging
 from deploydocus.package.pkg import AbstractK8sPkg, autosort
-from deploydocus.settings import InstanceSettings
-from deploydocus.types import ManifestSequence
+from deploydocus.package.settings import InstanceSettings
+from deploydocus.package.types import ManifestSequence
 
 from .settings import ExampleInstanceSettings
 

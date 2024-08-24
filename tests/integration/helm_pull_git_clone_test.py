@@ -3,8 +3,8 @@ from tempfile import TemporaryDirectory
 
 from plumbum import local
 
-from deploydocus.installer.helm3 import HelmChart
-from deploydocus.installer.sources import GitRepo
+from deploydocus.appstate.helm3 import HelmChart
+from deploydocus.appstate.sources import GitRepo
 
 ls = local["ls"]
 

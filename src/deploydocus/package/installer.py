@@ -6,9 +6,9 @@ from kubernetes.client import ApiClient, V1ObjectMeta, V1Secret, V1Status
 from kubernetes.client.exceptions import ApiException  # type: ignore
 from kubernetes.config import new_client_from_config, new_client_from_config_dict
 
-from deploydocus.installer.errors import KubeConfigError, PkgAlreadyInstalled
+from deploydocus.package.errors import KubeConfigError, PkgAlreadyInstalled
 from deploydocus.package.pkg import AbstractK8sPkg
-from deploydocus.types import (
+from deploydocus.package.types import (
     SUPPORTED_KINDS,
     K8sListModel,
     K8sModel,
@@ -16,7 +16,7 @@ from deploydocus.types import (
     ManifestDict,
     ManifestSequence,
 )
-from deploydocus.utils import (
+from deploydocus.package.utils import (
     create_component_factory,
     delete_from_dict,
     delete_from_model,

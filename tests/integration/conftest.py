@@ -9,8 +9,8 @@ from example_app_pkg import ExampleInstanceSettings, ExamplePkg
 from plumbum import local
 
 from deploydocus import InstanceSettings
-from deploydocus.installer import PkgInstaller
-from deploydocus.types import K8sModel, K8sModelSequence
+from deploydocus.appstate import PkgInstaller
+from deploydocus.package.types import K8sModel, K8sModelSequence
 
 
 @pytest.fixture

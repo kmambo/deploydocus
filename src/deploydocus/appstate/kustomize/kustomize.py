@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pydantic import AnyUrl
 
-from deploydocus.installer.sources import GitRepo
+from deploydocus.appstate.sources import GitRepo
 
 
 class Kustomization:
@@ -22,4 +22,3 @@ class Kustomization:
             relpath = None  # ignore the relpath param
 
         self.relpath = Path(relpath) if relpath else None
-
