@@ -8,6 +8,7 @@ from typing import cast
 
 from dotenv import dotenv_values
 
+
 CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,

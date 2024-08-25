@@ -163,9 +163,6 @@ class ExamplePkg(AbstractK8sPkg):
     def render_default_svc_acct(self) -> dict[str, Any]:
         """
 
-        Args:
-            instance_settings:
-
         Returns:
 
         """
