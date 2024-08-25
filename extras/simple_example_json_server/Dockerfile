@@ -3,8 +3,7 @@ LABEL authors="partho"
 
 WORKDIR /app
 RUN python3 -m venv .venv
-RUN . .venv/bin/activate
 COPY requirements.txt .
 COPY simplejsonserver/basichttp.py basichttp.py
-RUN pip3 install -r requirements.txt
-ENTRYPOINT ["python3", "basichttp.py"]
+RUN /app/.venv/bin/pip install -r requirements.txt
+ENTRYPOINT ["/app/.venv/bin/python3", "basichttp.py"]
