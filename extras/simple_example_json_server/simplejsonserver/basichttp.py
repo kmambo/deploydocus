@@ -1,13 +1,13 @@
 import json
 import logging
 import logging.config
+import os
 from datetime import datetime, timezone
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from typing import cast
 
-from dotenv import dotenv_values
-
+from dotenv import load_dotenv
 
 CONFIG = {
     "version": 1,
@@ -65,8 +65,8 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
 
     dirname = Path("/var/lib/www")
-    cfg = dotenv_values(dirname / ".env")
-    port: int = int(cast(str, cfg["HTTP_PORT"]))
-    ip_addr: str = cast(str, cfg["HTTP_ADDR"])
+    cfg = load_dotenv(dotenv_path=dirname / ".env")
+    port: int = int(cast(str, os.getenv("HTTP_PORT", "8080")))
+    ip_addr: str = cast(str, os.getenv("HTTP_ADDR", "0.0.0.0"))
     server = HTTPServer((ip_addr, port), WebRequestHandler)
     server.serve_forever()
