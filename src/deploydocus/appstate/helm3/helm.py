@@ -88,7 +88,7 @@ class HelmChart:
         else:  # assume Helm repo ref
             helm = local["helm"]
             chart_template = helm[
-                "template", self.chart, *args, "--output-dir", dst_dir
+                "pull", self.chart, *args, "--untar", "--untardir", dst_dir
             ]
             ret_code, stdout, stderr = chart_template.run()
             assert ret_code == 0, (
