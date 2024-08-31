@@ -1,4 +1,4 @@
-from example_app_pkg import ExamplePkg
+from integration.example_app_pkg import ExamplePkg
 
 from deploydocus.appstate import PkgInstaller
 

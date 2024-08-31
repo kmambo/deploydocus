@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from example_app_pkg import ExamplePkg
+from integration.example_app_pkg import ExamplePkg
 
 from deploydocus.appstate import PkgInstaller
 from deploydocus.package.types import K8sModel, K8sModelSequence

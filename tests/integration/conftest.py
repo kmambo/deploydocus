@@ -5,8 +5,11 @@ from typing import Any, Generator, override
 
 import pytest
 import yaml
-from example_app_pkg import ExampleInstanceSettings, ExamplePkg
 from plumbum import local
+from integration.example_app_pkg import (
+    ExampleInstanceSettings,
+    ExamplePkg,
+)
 
 from deploydocus import InstanceSettings
 from deploydocus.appstate import PkgInstaller
