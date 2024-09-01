@@ -1,9 +1,9 @@
 from typing import Sequence
 
-from integration.example_app_pkg import ExamplePkg
-
 from deploydocus.appstate import PkgInstaller
 from deploydocus.package.types import K8sModel, K8sModelSequence
+
+from .example_app_pkg import ExamplePkg
 
 
 def test_uninstall(

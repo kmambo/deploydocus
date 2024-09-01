@@ -22,3 +22,22 @@ class Kustomization:
             relpath = None  # ignore the relpath param
 
         self.relpath = Path(relpath) if relpath else None
+
+    def pull(self, dst_dir: Path | str, *args, **kwargs):
+        """
+
+        Args:
+            dst_dir: local directory to which to clone (git) or pull (helm repo)
+            *args: passed to helm or git
+
+        Returns:
+            None
+
+        Todo:
+            add params to clone non-
+        """
+        if isinstance(dst_dir, str):
+            dst_dir = Path(dst_dir).expanduser()
+
+        if isinstance(self.kustomization, GitRepo):
+            self.kustomization.clone(dst_dir, args=args, **kwargs)

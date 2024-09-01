@@ -39,7 +39,9 @@ logger = logging.getLogger(__name__)
 
 
 def remove_empty_val(obj_dict: Any) -> dict[str, Any] | list[Any]:
-    """Removes from the dictionary, any key-value pair whose value is an empty
+    """Removes from the dictionary, any key-value pair whose value is an empty.
+
+    _Note_: Not being used currently.
 
     Args:
         obj_dict:
