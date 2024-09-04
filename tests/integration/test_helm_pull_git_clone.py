@@ -22,10 +22,18 @@ def test_helm_from_gitrepo():
         assert (Path(tmpdir) / chart_root).is_dir(), f"{tree(tmpdir)}"
 
 
-def test_helmrepo_pull():
-    helm_chart_url = "https://owkin.github.io/charts/pypiserver"
+def test_helmrepo_pull_https(helm_repo_chart_url_https):
+    hc = HelmChart(helm_repo_chart_url_https)
+    chart_name = cast(HelmRepoChart, hc.chart).chart_name
+    tree = local["tree"]
+    with TemporaryDirectory() as tmpdir:
+        hc.pull(tmpdir)
+        assert (Path(tmpdir) / chart_name).is_dir(), f"{tree(tmpdir)}"
+        assert (Path(tmpdir) / f"{chart_name}/templates").is_dir(), f"{tree(tmpdir)}"
 
-    hc = HelmChart(helm_chart_url)
+
+def test_helmrepo_pull_oci(helm_repo_chart_url_oci):
+    hc = HelmChart(helm_repo_chart_url_oci)
     chart_name = cast(HelmRepoChart, hc.chart).chart_name
     tree = local["tree"]
     with TemporaryDirectory() as tmpdir:

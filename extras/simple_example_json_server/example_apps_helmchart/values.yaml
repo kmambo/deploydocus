@@ -5,10 +5,10 @@
 replicaCount: 1
 
 image:
-  repository: docker.io/pbhowm
-  pullPolicy: IfNotPresent
+  repository: docker.io/pbhowmic/python-jsonserver
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: 0.1
 
 imagePullSecrets: []
 nameOverride: ""

@@ -21,14 +21,14 @@ class HelmRepoChart(BaseModel):
     @computed_field  # type: ignore[misc]
     @property
     def repo(self) -> HelmUrl:
-        repo_path = Path(cast(str, self.url.path)).parent
+        repo_path = str(Path(cast(str, self.url.path)).parent)[1:]
         return AnyUrl.build(
             scheme=self.url.scheme,
             username=self.url.username,
             password=self.url.password,
             host=cast(str, self.url.host),
             port=self.url.port,
-            path=str(repo_path),
+            path=repo_path,
             query=self.url.query,
             fragment=self.url.fragment,
         )
@@ -56,8 +56,7 @@ class HelmChart:
         src: HelmRepoChart | GitRepo | Path | str,
         relpath: str | Path | None = None,
     ):
-        """
-        Accepts URLs like
+        """Accepts URLs like
             - Helm chart repo assumed:
             oci://
             https://
@@ -105,17 +104,27 @@ class HelmChart:
             self.chart.clone(dst_dir, args=args, **kwargs)
         else:  # assume Helm repo ref
             helm = local["helm"]
-            chart_template = helm[
-                "pull",
-                cast(HelmRepoChart, self.chart).chart_name,
-                *args,
-                "--repo",
-                cast(HelmRepoChart, self.chart).repo,
-                "--untar",
-                "--untardir",
-                dst_dir,
-            ]
-            ret_code, stdout, stderr = chart_template.run()
+            helm_chart_pulled = (
+                helm[
+                    "pull",
+                    cast(HelmRepoChart, self.chart).chart_name,
+                    *args,
+                    "--repo",
+                    cast(HelmRepoChart, self.chart).repo,
+                    "--untar",
+                    "--untardir",
+                    dst_dir,
+                ]
+                if self.chart.repo.scheme == "https"
+                else helm[
+                    "pull",
+                    cast(HelmRepoChart, self.chart.url),
+                    "--untar",
+                    "--untardir",
+                    dst_dir,
+                ]
+            )
+            ret_code, stdout, stderr = helm_chart_pulled.run()
             assert ret_code == 0, (
                 f"git clone execution error {ret_code=}, {stdout=}," f" {stderr=}"
             )

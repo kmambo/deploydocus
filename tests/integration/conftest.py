@@ -127,3 +127,13 @@ def setup_no_preinstalled(
         deployment=example_pkg.render_default_deployment()["metadata"]["name"],
         configmap=example_pkg.render_default_configmap()["metadata"]["name"],
     )
+
+
+@pytest.fixture
+def helm_repo_chart_url_https() -> Generator[str, None, None]:
+    yield "https://owkin.github.io/charts/pypiserver"
+
+
+@pytest.fixture
+def helm_repo_chart_url_oci() -> Generator[str, None, None]:
+    yield "oci://registry-1.docker.io/bitnamicharts/redis"
