@@ -19,11 +19,12 @@ pydantic-settings = "^2.3"
 pyyaml = {extras = ["libyaml"], version = "^6.0"}
 types-pyyaml = "^6.0"
 plumbum = "^1.8"
+pydantic = "^2.8"
 
 
 [tool.poetry.group.dev.dependencies]
-ipython = "^8.25.0"
-pytest = "^8.2.2"
+ipython = "^8.25"
+pytest = "^8.2"
 mypy = "^1.10"
 isort = "^5.13"
 flake8 = "^7.1"
@@ -31,6 +32,7 @@ cython = "^3.0"
 wheel = "^0.43"
 camel-converter = "^3.1"
 black = "^24.4"
+flake8-pydantic = "^0.3.1"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^7.3"

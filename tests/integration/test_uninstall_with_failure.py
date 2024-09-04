@@ -3,8 +3,8 @@ import logging
 import pytest
 from kubernetes.client import ApiException
 
-from deploydocus.installer import PkgInstaller
-from deploydocus.types import ManifestDict
+from deploydocus.appstate import PkgInstaller
+from deploydocus.package.types import ManifestDict
 
 logger = logging.getLogger(__name__)
 
