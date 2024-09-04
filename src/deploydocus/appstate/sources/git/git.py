@@ -16,7 +16,9 @@ path_re = re.compile(r"/([\w-]+)/([\w-]+)")
 class NotGitRepoError(Exception): ...
 
 
-def _sanitize_git_repo(url: Url):
+def _sanitize_git_repo(url: Url | str):
+    if isinstance(url, str):
+        url = Url(url)
     assert url.path, f"{url=}"
     assert path_re.fullmatch(url.path)
     if not url.path.endswith(GIT_POSTFIX):
@@ -32,7 +34,7 @@ GitUrl = Annotated[
 
 
 class GitRepo(pydantic.BaseModel):
-    url: GitUrl
+    url: GitUrl | str
 
     def clone(
         self,

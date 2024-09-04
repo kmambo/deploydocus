@@ -12,11 +12,13 @@ class Kustomization:
     def __init__(self, src: str | Path | GitRepo, relpath: str | Path | None = None):
         if isinstance(src, GitRepo):
             self.kustomization = src
-        elif isinstance(src, str) and src.startswith("git+"):
+        elif isinstance(src, str):
             # assume Git repo reference when it starts
-            # with 'git+' in which case it is a url
+            # with 'git+https://' or 'https://' in which case it is a url
             # to a git repo
-            self.kustomization = GitRepo(url=AnyUrl(src[4:]))
+            if src.startswith("git+"):
+                src = src[4:]
+            self.kustomization = GitRepo(url=AnyUrl(src))
         elif isinstance(src, (Path, str)):
             self.kustomization = Path(src).expanduser()
             relpath = None  # ignore the relpath param
@@ -24,7 +26,8 @@ class Kustomization:
         self.relpath = Path(relpath) if relpath else None
 
     def pull(self, dst_dir: Path | str, *args, **kwargs):
-        """
+        """Accepts URLs like
+
 
         Args:
             dst_dir: local directory to which to clone (git) or pull (helm repo)
@@ -36,7 +39,7 @@ class Kustomization:
         Todo:
             add params to clone non-
         """
-        if isinstance(dst_dir, str):
+        if isinstance(dst_dir, (str, Path)):
             dst_dir = Path(dst_dir).expanduser()
 
         if isinstance(self.kustomization, GitRepo):

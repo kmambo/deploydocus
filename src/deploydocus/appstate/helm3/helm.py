@@ -115,10 +115,10 @@ class HelmChart:
                     "--untardir",
                     dst_dir,
                 ]
-                if self.chart.repo.scheme == "https"
+                if cast(HelmRepoChart, self.chart).repo.scheme == "https"
                 else helm[
                     "pull",
-                    cast(HelmRepoChart, self.chart.url),
+                    cast(HelmRepoChart, self.chart).url,
                     "--untar",
                     "--untardir",
                     dst_dir,
