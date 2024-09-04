@@ -5,12 +5,13 @@ from typing import Any, Generator, override
 
 import pytest
 import yaml
-from example_app_pkg import ExampleInstanceSettings, ExamplePkg
 from plumbum import local
 
 from deploydocus import InstanceSettings
-from deploydocus.installer import PkgInstaller
-from deploydocus.types import K8sModel, K8sModelSequence
+from deploydocus.appstate import PkgInstaller
+from deploydocus.package.types import K8sModel, K8sModelSequence
+
+from .example_app_pkg import ExampleInstanceSettings, ExamplePkg
 
 
 @pytest.fixture
@@ -126,3 +127,13 @@ def setup_no_preinstalled(
         deployment=example_pkg.render_default_deployment()["metadata"]["name"],
         configmap=example_pkg.render_default_configmap()["metadata"]["name"],
     )
+
+
+@pytest.fixture
+def helm_repo_chart_url_https() -> Generator[str, None, None]:
+    yield "https://owkin.github.io/charts/pypiserver"
+
+
+@pytest.fixture
+def helm_repo_chart_url_oci() -> Generator[str, None, None]:
+    yield "oci://registry-1.docker.io/bitnamicharts/redis"

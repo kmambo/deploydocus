@@ -1,5 +1,6 @@
 import functools
 import logging
+from pathlib import Path
 from typing import Any, Callable, Iterable, LiteralString, cast
 
 from kubernetes import client
@@ -38,7 +39,9 @@ logger = logging.getLogger(__name__)
 
 
 def remove_empty_val(obj_dict: Any) -> dict[str, Any] | list[Any]:
-    """Removes from the dictionary, any key-value pair whose value is an empty
+    """Removes from the dictionary, any key-value pair whose value is an empty.
+
+    _Note_: Not being used currently.
 
     Args:
         obj_dict:
@@ -410,3 +413,21 @@ def is_k8s_model(model: Any) -> bool:
         and callable(model.to_dict)
         and callable(model.to_str)
     )
+
+
+def settings_file_path(module_path: Path | str, json_filename: str) -> Path:
+    """A utility to lo locate the settings file (release.json or pkg.json) is located
+
+    Args:
+        module_path: Must be sent as __file__ from the __init__ module of the Pkg
+        json_filename: must be either "release.json" or "pkg.json"
+
+    Returns:
+        The absolute path to the release.json or pkg.json
+    """
+    _module_path: Path = (
+        module_path if isinstance(module_path, Path) else Path(module_path)
+    ).resolve()
+
+    _dir = _module_path if _module_path.is_dir() else _module_path.parent
+    return _dir / json_filename

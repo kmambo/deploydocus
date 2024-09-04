@@ -4,6 +4,7 @@ DIR:=${CURDIR}
 EXAMPLE_DIR:=$(DIR)/extras/example_app_pkg
 MAKE:=make
 src_files:=$(shell find $(DIR) -type f -name '*.py')
+PYTHON:=python
 
 .PHONY: all name version lint git_tag shell example-image test docs
 
@@ -33,10 +34,10 @@ shell: poetry.lock
 	poetry install --no-root --sync
 
 lint: poetry.lock src tests
-	isort src tests extras docs/source
-	black src tests extras docs/source
-	flake8 src tests extras docs/source
-	$(DIR)/scripts/dmypy.sh src tests extras
+	isort src tests docs/source #extras/simple_example_json_server/simplejsonserver/basichttp.py extras/example_app_pkg
+	black src tests docs/source #extras/simple_example_json_server/simplejsonserver/basichttp.py extras/example_app_pkg
+	flake8 src tests docs/source #extras/simple_example_json_server/simplejsonserver/basichttp.py extras/example_app_pkg
+	$(DIR)/scripts/dmypy.sh src tests #extras/simple_example_json_server/simplejsonserver/basichttp.py extras/example_app_pkg
 
 sync: poetry.lock
 	poetry install --sync --no-root
@@ -61,7 +62,7 @@ docs:
 
 .PHONY: preview-docs
 preview-docs: docs
-	python -m http.server 9000 --bind=127.0.0.1 --directory docs/build/html
+	$(PYTHON) -m http.server 9000 --bind=127.0.0.1 --directory docs/build/html
 
 .PHONY: site
 site:

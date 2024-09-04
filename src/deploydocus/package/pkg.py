@@ -4,8 +4,8 @@ from functools import wraps
 from pathlib import Path
 from typing import LiteralString
 
-from deploydocus.settings import InstanceSettings
-from deploydocus.types import (
+from deploydocus.package.settings import InstanceSettings
+from deploydocus.package.types import (
     SUPPORTED_KINDS,
     LabelsDict,
     LabelsSelector,
