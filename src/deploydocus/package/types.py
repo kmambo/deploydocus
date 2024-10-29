@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, NotRequired, TypedDict, Union
+from typing import Any, LiteralString, Mapping, NotRequired, Sequence, TypedDict, Union
 
 from kubernetes.client.models import (  # type: ignore[import-untyped]
     V1APIService,
@@ -37,7 +37,7 @@ from kubernetes.client.models import (  # type: ignore[import-untyped]
     V1StorageClass,
 )
 
-SUPPORTED_KINDS: OrderedDict[str, str] = OrderedDict(
+SUPPORTED_KINDS: OrderedDict[LiteralString, LiteralString] = OrderedDict(
     [
         ("Namespace", "v1"),
         ("NetworkPolicy", "networking.k8s.io/v1"),
@@ -97,7 +97,7 @@ LabelsDict = TypedDict(
     },
 )
 
-K8sModel = Union[
+type K8sModel = Union[
     V1APIService,
     V1ClusterRoleBinding,
     V1ClusterRole,
@@ -136,6 +136,6 @@ K8sListModel = Union[
 ]
 K8sModelSequence = list[K8sModel]
 # TODO: Deprecate the ones below
-ManifestDict = dict[str, Any] | K8sModel | K8sListModel
-ManifestSequence = list[ManifestDict]
+ManifestDict = Mapping[str, Any] | K8sModel | K8sListModel
+ManifestSequence = Sequence[ManifestDict]
 ManifestAll = ManifestDict | ManifestSequence

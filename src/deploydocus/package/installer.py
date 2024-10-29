@@ -103,11 +103,15 @@ class PkgInstaller:
         Returns:
 
         """
-        kind: str = component["kind"] if isinstance(component, dict) else component.kind
-        name: str = (
-            component["metadata"]["name"]
+        kind: str = (
+            cast(dict, component)["kind"]
             if isinstance(component, dict)
-            else component.metadata.name
+            else cast(str, getattr(component, "kind"))
+        )
+        name: str = (
+            cast(dict, component)["metadata"]["name"]
+            if isinstance(component, dict)
+            else cast(V1ObjectMeta, getattr(component, "metadata")).name
         )
 
         get_component, namespaced = get_component_factory(
@@ -119,7 +123,7 @@ class PkgInstaller:
                 namespace = (
                     component["metadata"]["namespace"]
                     if isinstance(component, dict)
-                    else cast(V1ObjectMeta, component.metadata).namespace
+                    else cast(V1ObjectMeta, getattr(component, "metadata")).namespace
                 )
                 existing_component = get_component(name=name, namespace=namespace)
             else:

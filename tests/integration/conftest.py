@@ -5,10 +5,10 @@ from typing import Any, Generator, override
 
 import pytest
 import yaml
-from plumbum import local
 
 from deploydocus import InstanceSettings
 from deploydocus.appstate import PkgInstaller
+from deploydocus.appstate.binutils import kubectl
 from deploydocus.package.types import K8sModel, K8sModelSequence
 
 from .example_app_pkg import ExampleInstanceSettings, ExamplePkg
@@ -34,7 +34,6 @@ def _uninstall_test_util(namespace: str, service: str, deployment: str, configma
     Returns:
         None
     """
-    kubectl = local["kubectl"]
     kubectl("delete", "service", service, "-n", namespace, retcode=None)
     kubectl("delete", "deployment", deployment, "-n", namespace, retcode=None)
     kubectl("delete", "configmap", configmap, "-n", namespace, retcode=None)
@@ -50,7 +49,6 @@ def _install_test_util(rendered: list[dict[str, Any]]):
     Returns:
         None
     """
-    kubectl = local["kubectl"]  # find kubectl
     with NamedTemporaryFile("wt") as f:
         yaml.safe_dump_all(rendered, f)
         f.flush()
