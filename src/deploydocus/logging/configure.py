@@ -1,7 +1,7 @@
 import logging.config
 from threading import Lock
 
-CONFIG = {
+DEFAULT_LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -41,5 +41,5 @@ def configure_logging():
         if _set_logging:
             return
         else:
-            logging.config.dictConfig(CONFIG)
+            logging.config.dictConfig(DEFAULT_LOGGING_CONFIG)
             _set_logging = True

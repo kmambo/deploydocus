@@ -1,6 +1,13 @@
+import os
+
+import pytest
+
 from deploydocus.appstate import PkgInstaller
 
 from .example_app_pkg import ExamplePkg
+
+if os.environ.get("INTEGRATION", None):
+    pytest.skip("Skip integration", allow_module_level=True)
 
 
 def test_install(setup_no_preinstalled: tuple[PkgInstaller, ExamplePkg]):

@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class ExamplePkg(AbstractK8sPkg):
-
     def __init__(
         self,
         instance: InstanceSettings,
