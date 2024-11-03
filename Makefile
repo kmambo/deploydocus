@@ -55,7 +55,7 @@ kind-load: example-image
 	kind load docker-image python-httpserver:$(VERSION) -n deploydocus
 
 test: requirements-dev.txt
-	PYTHONPATH=src:extras pytest tests
+	PYTHONPATH=src:extras INTEGRATION=0 pytest tests
 
 docs:
 	$(MAKE) -C docs html

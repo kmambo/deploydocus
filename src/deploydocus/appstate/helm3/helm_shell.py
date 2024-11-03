@@ -2,11 +2,11 @@ from io import StringIO
 from typing import Any, Sequence
 
 import yaml
-from plumbum import local
+
+from ..binutils import helm
 
 # Note: Not yet threadsafe
-_helm = local["helm"]
-helm_ver: str = _helm["version"]()
+helm_ver: str = helm["version"]()
 
 
 def helm_template(
@@ -23,7 +23,7 @@ def helm_template(
     Returns:
 
     """
-    rendered_str: str = _helm["template"](name, chart, *args)
+    rendered_str: str = helm["template"](name, chart, *args)
 
     if as_str:
         return rendered_str

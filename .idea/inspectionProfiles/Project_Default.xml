@@ -16,5 +16,7 @@
         </value>
       </option>
     </inspection_tool>
+    <inspection_tool class="PydanticInspection" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="PydanticTypeCheckerInspection" enabled="false" level="WARNING" enabled_by_default="false" />
   </profile>
 </component>
