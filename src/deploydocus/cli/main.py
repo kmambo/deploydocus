@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -7,18 +7,17 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command(name="recon")
 def reconcile(
-    appname: str,  # Annotated[str, typer.Argument(help="Application name")],
-    filepath: Optional[
-        str
-    ] = None,  # Annotated[str | None, typer.Option(default=None, help="Path to script")],
-    module: Optional[
-        str
-    ] = None,  # Annotated[str | None, typer.Option(default=None, help="Module name")],
-    context: Optional[
-        str
-    ] = None,  # Annotated[str | None, typer.Option(help="Context ", default=None)],
+    appname: Annotated[str, typer.Argument(help="Application name")],
+    filepath: Annotated[str | None, typer.Option(help="Path to script")] = None,
+    module: Annotated[str | None, typer.Option(help="Module name")] = None,
+    context: Annotated[
+        str | None,
+        typer.Option(
+            help="Context ",
+        ),
+    ] = None,
 ):
-    """Reconcile
+    """Does the equivalent of a `kubectl apply -f -` with a rendered manifest
 
     Args:
         module:
