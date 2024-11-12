@@ -6,7 +6,7 @@ MAKE:=make
 src_files:=$(shell find $(DIR) -type f -name '*.py')
 PYTHON:=python
 
-.PHONY: all name version lint git_tag shell example-image test docs
+.PHONY: all name version lint git_tag shell example-image test docs publish
 
 all: lint test build
 
@@ -44,6 +44,9 @@ sync: poetry.lock
 
 build: sync
 	poetry build
+
+publish: sync
+	poetry publish --build
 
 render:
 	helm template chart-instance k8s/defaultchart | yq -C | less -R
