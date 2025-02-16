@@ -77,8 +77,8 @@ def bad_example_pkg(
             super().__init__(instance, pkg_version=pkg_version, pkg_name=pkg_name)
 
         @override
-        def render_default_deployment(self) -> dict[str, Any]:
-            obj_dict = super().render_default_deployment()
+        def render_deployments(self) -> dict[str, Any]:
+            obj_dict = super().render_deployments()
             obj_dict["spec"]["selector"]["matchLabels"][
                 "app.kubernetes.io/name"
             ] = "hello-world"
@@ -88,9 +88,9 @@ def bad_example_pkg(
     yield bad_example_pkg
     _uninstall_test_util(
         namespace=bad_example_pkg.instance_settings.instance_namespace,
-        service=bad_example_pkg.render_default_service()["metadata"]["name"],
-        deployment=bad_example_pkg.render_default_deployment()["metadata"]["name"],
-        configmap=bad_example_pkg.render_default_configmap()["metadata"]["name"],
+        service=bad_example_pkg.render_services()["metadata"]["name"],
+        deployment=bad_example_pkg.render_deployments()["metadata"]["name"],
+        configmap=bad_example_pkg.render_configmaps()["metadata"]["name"],
     )
 
 
@@ -107,9 +107,9 @@ def setup_preinstalled(
     finally:
         _uninstall_test_util(
             namespace=example_pkg.instance_settings.instance_namespace,
-            service=example_pkg.render_default_service()["metadata"]["name"],
-            deployment=example_pkg.render_default_deployment()["metadata"]["name"],
-            configmap=example_pkg.render_default_configmap()["metadata"]["name"],
+            service=example_pkg.render_services()["metadata"]["name"],
+            deployment=example_pkg.render_deployments()["metadata"]["name"],
+            configmap=example_pkg.render_configmaps()["metadata"]["name"],
         )
 
 
@@ -121,9 +121,9 @@ def setup_no_preinstalled(
     yield pkg_installer, example_pkg,
     _uninstall_test_util(
         namespace=example_pkg.instance_settings.instance_namespace,
-        service=example_pkg.render_default_service()["metadata"]["name"],
-        deployment=example_pkg.render_default_deployment()["metadata"]["name"],
-        configmap=example_pkg.render_default_configmap()["metadata"]["name"],
+        service=example_pkg.render_services()["metadata"]["name"],
+        deployment=example_pkg.render_deployments()["metadata"]["name"],
+        configmap=example_pkg.render_configmaps()["metadata"]["name"],
     )
 
 

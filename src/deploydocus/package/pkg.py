@@ -1,8 +1,8 @@
-import abc
 import logging
 from functools import wraps
-from pathlib import Path
-from typing import LiteralString
+from typing import Any, Dict, LiteralString, Optional, Self, Sequence
+
+from pydantic import BaseModel, Field, model_validator
 
 from deploydocus.package.settings import InstanceSettings
 from deploydocus.package.types import (
@@ -28,32 +28,22 @@ def autosort(f):
         )
         return ret
 
-    print(type(f))
-
     return wrapped
 
 
-class AbstractK8sPkg(abc.ABC):
-    pkg_name: str
-    pkg_version: str
+class AbstractK8sPkg(BaseModel):
+    pkg_name: str = Field(default="", description="A name of this application")
+    pkg_version: str = Field(
+        description="Provide a version number for the application. This is independent"
+        " of the individual components  of the application"
+    )
+    instance_settings: InstanceSettings
 
-    def __init__(
-        self,
-        instance: InstanceSettings,
-        *,
-        pkg_version: str,
-        pkg_name: str | None = None,
-    ):
-        """
-
-        Args:
-            pkg_name:
-            pkg_settings_class:
-        """
-        assert pkg_version.strip(), "parameter pkg_version cannot be empty or None"
-        self.pkg_name = pkg_name or self.__class__.__name__.lower()
-        self.pkg_version = pkg_version
-        self.instance_settings = instance
+    @model_validator(mode="after")
+    def validate_after(self: Self) -> Self:
+        if not self.pkg_name:
+            self.pkg_name = self.__class__.__name__
+        return self
 
     @property
     def default_labels(self) -> LabelsDict:
@@ -73,26 +63,149 @@ class AbstractK8sPkg(abc.ABC):
             "app.kubernetes.io/managed-by": DEPLOYDOCUS_DOMAIN,
         }
 
-    def read_template(self, template_filename: str, **kwargs) -> str:
-        """
+    def render_namespaces(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
 
-        Args:
-            template_filename:
-            **kwargs:
+    def render_networkpolicys(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
 
-        Returns:
+    def render_resourcequotas(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
 
-        """
-        pwd = Path(__file__).parent
-        with open(pwd / template_filename, "rt") as f:
-            full_file_template = f.read()
-        return full_file_template.format(**kwargs)
+    def render_limitranges(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
 
-    @abc.abstractmethod
+    def render_poddisruptionbudgets(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_serviceaccounts(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_secrets(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_secretlists(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_configmaps(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_storageclasss(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_persistentvolumes(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_persistentvolumeclaims(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_customresourcedefinitions(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_clusterroles(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_clusterrolelists(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_clusterrolebindings(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_clusterrolebindinglists(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_roles(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_rolelists(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_rolebindings(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_rolebindinglists(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_services(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_daemonsets(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_pods(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_replicationcontrollers(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_replicasets(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_deployments(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_horizontalpodautoscalers(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_statefulsets(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_jobs(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_cronjobs(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_ingresss(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
+    def render_apiservices(self) -> Optional[Sequence[Dict[str, Any]]]:
+        return None
+
     def render(self) -> ManifestSequence:
-        """Renders (as JSON or YAML) the application
+        """Renders the Kubernetes manifests for the application
 
         Returns:
 
         """
-        ...
+        manifests = [
+            m
+            for m in [
+                self.render_namespaces(),
+                self.render_networkpolicys(),
+                self.render_resourcequotas(),
+                self.render_limitranges(),
+                self.render_poddisruptionbudgets(),
+                self.render_serviceaccounts(),
+                self.render_secrets(),
+                self.render_secretlists(),
+                self.render_configmaps(),
+                self.render_storageclasss(),
+                self.render_persistentvolumes(),
+                self.render_persistentvolumeclaims(),
+                self.render_customresourcedefinitions(),
+                self.render_clusterroles(),
+                self.render_clusterrolelists(),
+                self.render_clusterrolebindings(),
+                self.render_clusterrolebindinglists(),
+                self.render_roles(),
+                self.render_rolelists(),
+                self.render_rolebindings(),
+                self.render_rolebindinglists(),
+                self.render_services(),
+                self.render_daemonsets(),
+                self.render_pods(),
+                self.render_replicationcontrollers(),
+                self.render_replicasets(),
+                self.render_deployments(),
+                self.render_horizontalpodautoscalers(),
+                self.render_statefulsets(),
+                self.render_jobs(),
+                self.render_cronjobs(),
+                self.render_ingresss(),
+                self.render_apiservices(),
+            ]
+            if m
+        ]
+
+        return manifests

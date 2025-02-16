@@ -26,10 +26,12 @@ class ExamplePkg(AbstractK8sPkg):
             f" it is of type {type(instance)}"
         )
         super().__init__(
-            instance, pkg_version=pkg_version or "0.1.0", pkg_name=pkg_name
+            instance_settings=instance,
+            pkg_version=pkg_version or "0.1.0",
+            pkg_name=pkg_name,
         )
 
-    def render_default_namespace(self) -> dict[str, Any]:
+    def render_namespace(self) -> dict[str, Any]:
         namespace = cast(
             ExampleInstanceSettings, self.instance_settings
         ).instance_namespace
@@ -44,7 +46,7 @@ class ExamplePkg(AbstractK8sPkg):
         logger.debug(f"{obj_dict=}")
         return obj_dict
 
-    def render_default_deployment(self) -> dict[str, Any]:
+    def render_deployments(self) -> dict[str, Any]:
         instance = cast(ExampleInstanceSettings, self.instance_settings)
         namespace = instance.instance_namespace
         volumes, volume_mounts = [], []
@@ -129,7 +131,7 @@ class ExamplePkg(AbstractK8sPkg):
 
         return obj_dict
 
-    def render_default_service(self) -> dict[str, Any]:
+    def render_services(self) -> dict[str, Any]:
         instance = cast(ExampleInstanceSettings, self.instance_settings)
         namespace = instance.instance_namespace
         obj_dict = {
@@ -159,7 +161,7 @@ class ExamplePkg(AbstractK8sPkg):
         logger.debug(f"{obj_dict=}")
         return obj_dict
 
-    def render_default_svc_acct(self) -> dict[str, Any]:
+    def render_svc_accts(self) -> dict[str, Any]:
         """
 
         Returns:
@@ -181,7 +183,7 @@ class ExamplePkg(AbstractK8sPkg):
         logger.debug(f"{obj_dict=}")
         return obj_dict
 
-    def render_default_configmap(self):
+    def render_configmaps(self):
         instance = cast(ExampleInstanceSettings, self.instance_settings)
         obj_dict = {
             "kind": "ConfigMap",
@@ -205,11 +207,11 @@ class ExamplePkg(AbstractK8sPkg):
 
         """
         seq: list[dict[str, Any]] = [
-            self.render_default_namespace(),
-            self.render_default_configmap(),
-            self.render_default_service(),
-            self.render_default_svc_acct(),
-            self.render_default_deployment(),
+            self.render_namespace(),
+            self.render_configmaps(),
+            self.render_services(),
+            self.render_svc_accts(),
+            self.render_deployments(),
         ]
 
         return seq

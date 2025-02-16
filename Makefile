@@ -4,9 +4,9 @@ DIR:=${CURDIR}
 EXAMPLE_DIR:=$(DIR)/extras/example_app_pkg
 MAKE:=make
 src_files:=$(shell find $(DIR) -type f -name '*.py')
-PYTHON:=python
+PYTHON:=python3
 
-.PHONY: all name version lint git_tag shell example-image test docs publish
+.PHONY: all name version lint git_tag example-image test docs publish
 
 all: lint test build
 
@@ -19,19 +19,8 @@ version: pyproject.toml
 name: pyproject.toml
 	echo $(NAME)
 
-requirements.txt: poetry.lock
-	poetry export -f requirements.txt --without-hashes \
-		--without dev --output requirements.txt
-
-requirements-dev.txt: poetry.lock
-	poetry export -f requirements.txt --without-hashes \
-		--only dev --output requirements-dev.txt
-
 poetry.lock: pyproject.toml
-	poetry lock --no-update
-
-shell: poetry.lock
-	poetry install --no-root --sync
+	poetry lock
 
 lint: poetry.lock src tests
 	isort src tests docs/source #extras/simple_example_json_server/simplejsonserver/basichttp.py extras/example_app_pkg
@@ -40,7 +29,7 @@ lint: poetry.lock src tests
 	$(DIR)/scripts/dmypy.sh src tests #extras/simple_example_json_server/simplejsonserver/basichttp.py extras/example_app_pkg
 
 sync: poetry.lock
-	poetry install --sync --no-root
+	poetry sync
 
 build: sync
 	poetry build
@@ -57,7 +46,7 @@ example-image: $(EXAMPLE_DIR)/Dockerfile $(EXAMPLE_DIR)/basichttp.py pyproject.t
 kind-load: example-image
 	kind load docker-image python-httpserver:$(VERSION) -n deploydocus
 
-test: requirements-dev.txt
+test: sync
 	PYTHONPATH=src:extras INTEGRATION=0 pytest tests
 
 docs:

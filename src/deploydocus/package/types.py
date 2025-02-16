@@ -134,6 +134,8 @@ K8sListModel = Union[
     V1RoleList,
     V1SecretList,
 ]
+
+
 K8sModelSequence = list[K8sModel]
 # TODO: Deprecate the ones below
 ManifestDict = Mapping[str, Any] | K8sModel | K8sListModel

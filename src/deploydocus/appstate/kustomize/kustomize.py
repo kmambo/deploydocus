@@ -10,28 +10,6 @@ class Kustomization(BaseModel):
     kustomization: GitRepo | Path
     relpath: Path = Path(".")
 
-    # def __init__(self, src: str | Path | GitRepo, relpath: str | Path | None = None):
-    #     """Kustomization object
-    #
-    #     Args:
-    #         src:
-    #         relpath:
-    #     """
-    #     if isinstance(src, GitRepo):
-    #         self.kustomization = src
-    #     elif isinstance(src, str):
-    #         # assume Git repo reference when it starts
-    #         # with 'git+https://' or 'https://' in which case it is a url
-    #         # to a git repo
-    #         if src.startswith("git+"):
-    #             src = src[4:]
-    #         self.kustomization = GitRepo(url=AnyUrl(src))  # type: ignore[call-arg]
-    #     elif isinstance(src, (Path, str)):
-    #         self.kustomization = Path(src).expanduser()
-    #         relpath = None  # ignore the relpath param
-    #
-    #     self.relpath = Path(relpath) if relpath else None
-
     def render(self, dst_dir: Path | str, *args) -> str:
         """
 
